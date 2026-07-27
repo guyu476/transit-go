@@ -525,10 +525,17 @@ function showRoute(idx){
   // Build flow bar for transit routes
   let flowHtml='';
   if(r.type==='transit'){
-    const segs=[];r.steps.forEach(st=>{segs.push(st.type);});
-    flowHtml='<div class="flow-bar"><div class="flow-seg"><div class="flow-dot start"></div><span class="flow-label">起</span></div>';
-    segs.forEach(tp=>{const cl=tp==='metro'?'metro':tp==='bus'?'bus':'walk';const ic=tp==='metro'?'🚇':tp==='bus'?'🚌':'🚶';flowHtml+=`<div class="flow-line ${cl}" style="width:24px"></div><div class="flow-icon">${ic}</div><div class="flow-line ${cl}" style="width:24px"></div>`;});
-    flowHtml+='<div class="flow-seg"><div class="flow-dot end"></div><span class="flow-label">终</span></div></div>';
+    const segs=[];
+    r.steps.forEach(st=>{
+      const lbl=st.type==='metro'?`🚇 ${esc(st.line||'地铁')}`:st.type==='bus'?`🚌 ${esc(st.line||'公交')}`:'🚶';
+      segs.push({type:st.type,label:lbl});
+    });
+    flowHtml='<div class="flow-bar"><div class="flow-seg"><span style="font-size:13px">起</span></div>';
+    segs.forEach(sg=>{
+      const cl=sg.type==='metro'?'metro':sg.type==='bus'?'bus':'walk';
+      flowHtml+=`<div class="flow-line ${cl}" style="width:16px"></div><span class="flow-label" style="font-weight:500;color:var(--text)">${sg.label}</span><div class="flow-line ${cl}" style="width:16px"></div>`;
+    });
+    flowHtml+='<div class="flow-seg"><span style="font-size:13px">终</span></div></div>';
   }
 
   let h=`<div class="route-summary">${sumItems.map(m=>`<div class="route-summary-item"><div class="route-summary-val">${m.val}</div><div class="route-summary-label">${m.label}</div></div>`).join('')}</div>${flowHtml}<div class="step-list">`;
@@ -543,24 +550,35 @@ function showRoute(idx){
 }
 
 function renderStep(num,s){
-  const cfg={metro:['metro','🚇','乘坐地铁'],bus:['bus','🚌','乘坐公交'],walk:['walk','🚶','步行'],transfer:['transfer','🔄','换乘']};
+  const cfg={metro:['metro','🚇'],bus:['bus','🚌'],walk:['walk','🚶'],transfer:['transfer','🔄']};
   const[cls,icon]=cfg[s.type]||['walk','🚶'];
-  let title=s.instruction||cfg[s.type]?.[2]||'';
-  let sub='';
+  let title='',sub='';
 
   if(s.type==='metro'||s.type==='bus'){
-    title=`乘坐 ${esc(s.line||'')}`;
-    let stations='';
+    const tp=s.type==='metro'?'地铁':'公交';
+    if(s.line)title=`<b>${esc(s.line)}</b> <span style="font-size:12px;color:var(--text2);font-weight:400">${tp}</span>`;
+    else title=`乘坐${tp}`;
     if(s.departure&&s.arrival){
-      stations=`<div class="step-stations"><span class="step-station">${esc(s.departure)}</span><span class="step-arrow">→</span><span class="step-station">${esc(s.arrival)}</span><span class="step-stops">${s.stops>0?s.stops+'站':''}</span></div>`;
+      sub=`<div class="step-stations">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px">
+          <span style="font-size:11px;color:var(--primary);font-weight:600">上车</span>
+          <span class="step-station" style="font-size:14px">${esc(s.departure)}</span>
+        </div>
+        <span class="step-arrow" style="font-size:20px">→</span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px">
+          <span style="font-size:11px;color:var(--danger);font-weight:600">下车</span>
+          <span class="step-station" style="font-size:14px">${esc(s.arrival)}</span>
+        </div>
+        <span class="step-stops" style="margin-left:8px">${s.stops>0?'坐 '+s.stops+' 站':''}</span>
+      </div>`;
     }
-    sub=`${stations}<div class="step-info">${fmtDist(s.distance)} · ${fmtDur(s.duration)}</div>`;
+    sub+=`<div class="step-info">${fmtDist(s.distance)} · ${fmtDur(s.duration)}</div>`;
   }else if(s.type==='walk'){
     title=s.instruction||'步行';
-    sub=`<div class="step-info">${s.distance?fmtDist(s.distance):''} ${s.duration?fmtDur(s.duration):''}</div>`;
+    sub=`<div class="step-info">${s.distance?fmtDist(s.distance)+' · ':''}${s.duration?fmtDur(s.duration):''}</div>`;
   }
 
-  return`<div class="step"><div class="step-num">${num}</div><div class="step-icon-wrap ${cls}">${icon}</div><div class="step-content"><div class="step-title">${esc(title)}</div>${sub}</div></div>`;
+  return`<div class="step"><div class="step-num">${num}</div><div class="step-icon-wrap ${cls}">${icon}</div><div class="step-content"><div class="step-title">${title}</div>${sub}</div></div>`;
 }
 
 // ==================== Map Helpers ====================
