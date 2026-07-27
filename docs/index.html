@@ -165,7 +165,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
   <div class="route-card">
     <div class="route-row">
       <div class="route-dot from"></div>
-      <input type="text" class="route-input from" id="inputFrom" placeholder="📍 我的位置（自动定位）" autocomplete="off" enterkeyhint="next">
+      <input type="text" class="route-input from" id="inputFrom" placeholder="🔍 搜索起点 / 自动定位" autocomplete="off" enterkeyhint="next">
       <button class="btn-locate-inline" id="btnLocateInline" title="重新定位">⊕</button>
       <button class="route-clear" id="clearFrom" title="清除">✕</button>
     </div>
@@ -487,7 +487,7 @@ function parseAmap(data,path){
         });
       });
       const parts=[];if(mn)parts.push(`🚇${mn}次`);if(bn)parts.push(`🚌${bn}次`);
-      return{type:'transit',summary:{distance:+t.distance,duration:+t.duration,metroCount:mn,busCount:bn,cost:t.cost||'?'},coords:allCoords,steps,label:`${parts.join('·')} · ${fmtDur(+t.duration)} · ¥${t.cost||'?'}`};
+      return{type:'transit',summary:{distance:+t.distance,duration:+t.duration,metroCount:mn,busCount:bn},coords:allCoords,steps,label:`${parts.join('·')} · ${fmtDur(+t.duration)}`};
     });
   }
   if(path.includes('walking')||path.includes('driving')){
@@ -520,7 +520,7 @@ function showRoute(idx){
   $('sheetMeta').textContent=r.label;
   const s=r.summary;
   let sumItems=[{val:fmtDur(s.duration),label:'预计时间'},{val:fmtDist(s.distance),label:'总距离'}];
-  if(r.type==='transit'){if(s.metroCount)sumItems.push({val:s.metroCount+' 条',label:'地铁'});if(s.busCount)sumItems.push({val:s.busCount+' 条',label:'公交'});sumItems.push({val:'¥'+s.cost,label:'费用'});}
+  if(r.type==='transit'){if(s.metroCount)sumItems.push({val:s.metroCount+' 条',label:'地铁'});if(s.busCount)sumItems.push({val:s.busCount+' 条',label:'公交'});}
 
   // Build flow bar for transit routes
   let flowHtml='';
