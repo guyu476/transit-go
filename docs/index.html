@@ -9,24 +9,21 @@
 <title>Transit Go · 出行导航</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-/* ========== Reset & Base ========== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --primary:#4A90D9;--primary-dark:#3A7BC8;--danger:#E74C3C;
   --bg:#FFFFFF;--bg2:#F5F7FA;--text:#1A1A2E;--text2:#666;
   --border:#E0E4E8;--radius:14px;--radius-sm:10px;--shadow:0 2px 16px rgba(0,0,0,.08);
   --metro:#E74C3C;--bus:#2ECC71;--walk:#F39C12;--transfer:#9B59B6;
-  --sheet-height:40vh;--topbar-h:56px;
+  --sheet-height:40vh;
   --safe-bottom:env(safe-area-inset-bottom,16px);
 }
 html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;font-size:15px;color:var(--text);background:var(--bg);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
 
-/* ========== Map ========== */
 #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 .leaflet-control-zoom{display:none}
-.leaflet-control-attribution{font-size:9px!important;opacity:.5;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.leaflet-control-attribution{font-size:9px!important;opacity:.6;max-width:70%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.7)!important;padding:2px 6px!important;border-radius:4px!important}
 
-/* ========== Top Bar ========== */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top,12px))}
 .search-box{display:flex;align-items:center;background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:2px;gap:0}
 .search-input{flex:1;border:none;outline:none;padding:12px 14px;font-size:16px;background:transparent;color:var(--text);min-width:0;border-radius:var(--radius) 0 0 var(--radius)}
@@ -38,8 +35,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .search-clear{display:none;color:var(--text2)}
 .search-clear.show{display:flex}
 
-/* ========== Suggestions Dropdown ========== */
-.suggestions{position:fixed;top:80px;left:14px;right:14px;z-index:110;background:var(--bg);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,.12);max-height:300px;overflow-y:auto;display:none}
+.suggestions{position:fixed;top:80px;left:14px;right:14px;z-index:110;background:var(--bg);border-radius:var(--radius);box-shadow:0 4px 24px rgba(0,0,0,.12);max-height:320px;overflow-y:auto;display:none}
 .suggestions.show{display:block}
 .sug-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .1s}
 .sug-item:last-child{border-bottom:none}
@@ -49,14 +45,11 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .sug-name{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sug-addr{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 
-/* ========== Action Buttons ========== */
 .action-bar{position:fixed;top:140px;right:14px;z-index:100;display:flex;flex-direction:column;gap:8px}
 .btn-action{width:44px;height:44px;border-radius:50%;border:none;background:var(--bg);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--text);transition:all .15s}
 .btn-action:active{background:var(--bg2);transform:scale(.95)}
-.btn-action.primary{background:var(--primary);color:#fff}
 .btn-action.danger{background:var(--danger);color:#fff}
 
-/* ========== Bottom Sheet ========== */
 .sheet{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg);border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.1);transition:transform .35s cubic-bezier(.4,0,.2,1),height .35s cubic-bezier(.4,0,.2,1);transform:translateY(calc(100% - 52px));height:var(--sheet-height);display:flex;flex-direction:column}
 .sheet.expanded{transform:translateY(0);height:68vh}
 .sheet.collapsed{transform:translateY(calc(100% - 52px))}
@@ -64,22 +57,19 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .sheet-handle-bar{width:36px;height:4px;border-radius:2px;background:#D0D5DD}
 .sheet-header{padding:4px 20px 12px;flex-shrink:0;border-bottom:1px solid var(--border)}
 .sheet-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px}
-.sheet-meta{font-size:13px;color:var(--text2);margin-top:4px;display:flex;gap:16px}
+.sheet-meta{font-size:13px;color:var(--text2);margin-top:4px}
 .sheet-body{flex:1;overflow-y:auto;padding:12px 20px 20px;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + var(--safe-bottom))}
 .sheet-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text2);text-align:center;padding:20px}
 .sheet-empty-icon{font-size:48px;margin-bottom:12px;opacity:.6}
 .sheet-empty-text{font-size:14px;line-height:1.6}
 
-/* ========== Route Card ========== */
-.route-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.route-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .route-tab{padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--text);white-space:nowrap}
 .route-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.route-tab-time{font-size:11px;opacity:.7;margin-left:4px}
 
-.step-list{display:flex;flex-direction:column;gap:0}
 .step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);align-items:flex-start}
 .step:last-child{border-bottom:none}
-.step-icon-wrap{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;position:relative}
+.step-icon-wrap{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
 .step-icon-wrap.metro{background:#FDEDEC;color:var(--metro)}
 .step-icon-wrap.bus{background:#E8F8F0;color:var(--bus)}
 .step-icon-wrap.walk{background:#FEF5E7;color:var(--walk)}
@@ -97,7 +87,6 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .route-summary-val{font-size:18px;font-weight:700;color:var(--primary)}
 .route-summary-label{font-size:11px;color:var(--text2);margin-top:2px}
 
-/* ========== Loading & Toast ========== */
 .loading-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.3);display:none;align-items:center;justify-content:center}
 .loading-overlay.show{display:flex}
 .loading-spinner{background:var(--bg);border-radius:var(--radius);padding:24px 32px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.15)}
@@ -109,7 +98,6 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .toast.show{opacity:1}
 .toast.error{background:var(--danger)}
 
-/* ========== Settings Modal ========== */
 .modal-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.4);display:none;align-items:flex-end;justify-content:center}
 .modal-overlay.show{display:flex}
 .modal{background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:8px 20px 20px;padding-bottom:calc(20px + var(--safe-bottom))}
@@ -125,40 +113,19 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .modal-btn.primary:active{background:var(--primary-dark)}
 .modal-btn.secondary{background:var(--bg2);color:var(--text);margin-top:8px}
 
-/* ========== My Location Marker ========== */
 .marker-me{width:22px;height:22px;background:var(--primary);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(74,144,217,.4);position:relative}
 .marker-me::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;background:rgba(74,144,217,.12);border-radius:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite}
 @keyframes pulse-ring{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
-
 .marker-dest{width:32px;height:42px;position:relative}
 .marker-dest::before{content:'📌';font-size:28px;position:absolute;top:0;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))}
-
-.marker-station{width:14px;height:14px;background:#fff;border:2.5px solid var(--metro);border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.15)}
-
-/* ========== Responsive ========== */
-@media(min-width:768px){
-  .topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}
-  .suggestions{max-width:472px;left:50%;transform:translateX(-50%)}
-  .action-bar{right:calc(50% - 250px + 14px)}
-}
-@media(min-width:1024px){
-  #map{left:0;width:100%}
-  .sheet{left:50%;transform:translate(-50%,calc(100% - 52px));max-width:500px}
-  .sheet.expanded{transform:translate(-50%,0)}
-}
-
-/* ========== Leaflet overrides ========== */
-.leaflet-popup-content-wrapper{border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.leaflet-popup-content{margin:10px 14px;font-size:13px;font-family:inherit}
 .custom-div-icon{border:none!important;background:none!important}
+
+@media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:472px;left:50%;transform:translateX(-50%)}}
+@media(min-width:1024px){.sheet{left:50%;transform:translate(-50%,calc(100% - 52px));max-width:500px}.sheet.expanded{transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
-
-<!-- Map -->
 <div id="map"></div>
-
-<!-- Top Bar -->
 <div class="topbar">
   <div class="search-box">
     <input type="text" class="search-input" id="searchInput" placeholder="搜索目的地、地标、地址..." autocomplete="off" enterkeyhint="search">
@@ -166,22 +133,14 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
     <button class="btn-icon" id="searchBtn" title="搜索">🔍</button>
   </div>
 </div>
-
-<!-- Suggestions -->
 <div class="suggestions" id="suggestions"></div>
-
-<!-- Action Buttons -->
 <div class="action-bar">
   <button class="btn-action" id="btnLocate" title="我的位置">📍</button>
   <button class="btn-action" id="btnSettings" title="设置">⚙️</button>
   <button class="btn-action danger" id="btnClear" title="清除路线" style="display:none">✕</button>
 </div>
-
-<!-- Bottom Sheet -->
 <div class="sheet collapsed" id="sheet">
-  <div class="sheet-handle" id="sheetHandle">
-    <div class="sheet-handle-bar"></div>
-  </div>
+  <div class="sheet-handle" id="sheetHandle"><div class="sheet-handle-bar"></div></div>
   <div class="sheet-header" id="sheetHeader">
     <div class="sheet-title" id="sheetTitle">🗺️ 想去哪里？</div>
     <div class="sheet-meta" id="sheetMeta"></div>
@@ -189,43 +148,36 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
   <div class="sheet-body" id="sheetBody">
     <div class="sheet-empty" id="sheetEmpty">
       <div class="sheet-empty-icon">🚇</div>
-      <div class="sheet-empty-text">
-        在上方搜索目的地<br>自动规划公交地铁换乘路线
-      </div>
+      <div class="sheet-empty-text">在上方搜索目的地<br>自动规划公交地铁换乘路线</div>
     </div>
     <div id="routeContent" style="display:none"></div>
   </div>
 </div>
-
-<!-- Loading -->
 <div class="loading-overlay" id="loading">
   <div class="loading-spinner">
     <div class="loading-spinner-icon">⏳</div>
     <div class="loading-spinner-text" id="loadingText">计算路线中...</div>
   </div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
-
-<!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-title">⚙️ 设置</div>
     <div class="modal-section">
-      <div class="modal-label">OpenRouteService API Key</div>
-      <input type="text" class="modal-input" id="orsKeyInput" placeholder="输入你的免费 API Key...">
+      <div class="modal-label">高德地图 API Key（Web服务）</div>
+      <input type="text" class="modal-input" id="amapKeyInput" placeholder="输入你的高德 Key...">
       <div class="modal-hint">
-        用于公交/地铁换乘路线规划。免费注册获取 👉
-        <a href="https://openrouteservice.org/dev/#/signup" target="_blank">openrouteservice.org</a><br>
-        免费额度：2000次/天，足够日常使用。<br>
-        不填也可以使用步行导航。
+        用于地点搜索 + 公交/地铁/步行路线规划。<br>
+        👉 打开 <a href="https://lbs.amap.com/" target="_blank">lbs.amap.com</a> 注册 → 创建应用 → 添加 Key。<br>
+        <b>服务平台</b> 选「Web服务」，完成后将 Key 粘贴到上方。<br>
+        不填也可使用高德地图浏览 + 步行导航（OSRM）。
       </div>
     </div>
     <div class="modal-section">
       <div class="modal-label">地图风格</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap" id="tileOptions">
-        <button class="route-tab active" data-tile="osm">标准地图</button>
+        <button class="route-tab active" data-tile="amap">高德地图</button>
+        <button class="route-tab" data-tile="osm">OSM标准</button>
         <button class="route-tab" data-tile="carto-light">浅色地图</button>
         <button class="route-tab" data-tile="carto-dark">暗色地图</button>
       </div>
@@ -234,61 +186,37 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
     <button class="modal-btn secondary" id="closeSettings">取消</button>
   </div>
 </div>
-
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
 /* ================================================================
-   Transit Go · 出行导航 — 核心逻辑
+   Transit Go · 出行导航 — 高德地图版
+   域名: guyu476.github.io/transit-go
    ================================================================ */
 
-// ---- DOM refs ----
 const $ = id => document.getElementById(id);
-const mapEl = $('map');
-const searchInput = $('searchInput');
-const searchClear = $('searchClear');
-const suggestions = $('suggestions');
-const sheet = $('sheet');
-const sheetTitle = $('sheetTitle');
-const sheetMeta = $('sheetMeta');
-const sheetBody = $('sheetBody');
-const sheetEmpty = $('sheetEmpty');
-const routeContent = $('routeContent');
-const loading = $('loading');
-const loadingText = $('loadingText');
-const toast = $('toast');
-const btnLocate = $('btnLocate');
-const btnClear = $('btnClear');
-const btnSettings = $('btnSettings');
-const settingsModal = $('settingsModal');
-const orsKeyInput = $('orsKeyInput');
 
 // ---- Config ----
 const CONFIG = {
-  orsKey: '',
-  tileStyle: 'osm',
-  searchTimeout: null,
-  geocodingCache: new Map()
+  amapKey: '',
+  tileStyle: 'amap',
+  searchTimer: null,
+  searchCache: new Map()
 };
-
-// Load saved config
 try {
-  const saved = JSON.parse(localStorage.getItem('transitgo_config') || '{}');
-  if (saved.orsKey) CONFIG.orsKey = saved.orsKey;
-  if (saved.tileStyle) CONFIG.tileStyle = saved.tileStyle;
+  const s = JSON.parse(localStorage.getItem('transitgo_config') || '{}');
+  if (s.amapKey) CONFIG.amapKey = s.amapKey;
+  if (s.tileStyle) CONFIG.tileStyle = s.tileStyle;
 } catch(e) {}
-
-orsKeyInput.value = CONFIG.orsKey;
+$('amapKeyInput').value = CONFIG.amapKey;
 
 // ---- Map ----
-const map = L.map('map', {
-  zoomControl: false,
-  attributionControl: true
-}).setView([39.9042, 116.4074], 13); // Default: Beijing
+const map = L.map('map', { zoomControl: false, attributionControl: true }).setView([39.9042, 116.4074], 13);
 
-// Tile layers
 const tileLayers = {
+  'amap': L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    maxZoom: 18, subdomains: '1234',
+    attribution: '&copy; <a href="https://www.amap.com/">高德地图</a>'
+  }),
   'osm': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -302,839 +230,472 @@ const tileLayers = {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
   })
 };
-
-let currentTile = tileLayers[CONFIG.tileStyle] || tileLayers['osm'];
+let currentTile = tileLayers[CONFIG.tileStyle] || tileLayers['amap'];
 currentTile.addTo(map);
 
 // ---- State ----
-let myPosition = null;          // {lat, lng}
-let myMarker = null;
-let myAccuracyCircle = null;
-let destPosition = null;        // {lat, lng, name}
-let destMarker = null;
-let routeLines = [];            // array of L.Polyline
-let routeMarkers = [];          // array of L.Marker
-let stationMarkers = [];        // nearby transit stations
-let currentRoutes = [];         // parsed route data
-let activeRouteIdx = 0;
+let myPos = null, myMarker = null;
+let destPos = null, destMarker = null;
+let routeLines = [], currentRoutes = [], activeRouteIdx = 0;
 
-// ---- Custom Icons ----
+// ---- Icons ----
 const meIcon = L.divIcon({ className: 'custom-div-icon', html: '<div class="marker-me"></div>', iconSize: [22,22], iconAnchor: [11,11] });
 const destIcon = L.divIcon({ className: 'custom-div-icon', html: '<div class="marker-dest"></div>', iconSize: [32,42], iconAnchor: [16,42] });
-const stationIcon = L.divIcon({ className: 'custom-div-icon', html: '<div class="marker-station"></div>', iconSize: [14,14], iconAnchor: [7,7] });
 
-// ---- Toast ----
+// ---- Toast & Loading ----
 let toastTimer;
-function showToast(msg, isError = false) {
+function showToast(msg, err) {
   clearTimeout(toastTimer);
-  toast.textContent = msg;
-  toast.className = 'toast show' + (isError ? ' error' : '');
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  $('toast').textContent = msg;
+  $('toast').className = 'toast show' + (err ? ' error' : '');
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2500);
 }
+function loading(msg) { $('loadingText').textContent = msg || '计算中...'; $('loading').classList.add('show'); }
+function loaded() { $('loading').classList.remove('show'); }
 
-// ---- Loading ----
-function showLoading(text = '计算路线中...') {
-  loadingText.textContent = text;
-  loading.classList.add('show');
-}
-function hideLoading() { loading.classList.remove('show'); }
-
-// ==================== Geolocation ====================
-function locateMe(silent = false) {
-  if (!navigator.geolocation) {
-    if (!silent) showToast('你的设备不支持定位功能', true);
-    return;
-  }
+// ---- Geolocation ----
+function locateMe(silent) {
+  if (!navigator.geolocation) { if (!silent) showToast('设备不支持定位', true); return; }
   if (!silent) showToast('正在定位...');
-  btnLocate.classList.add('locating');
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      myPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      updateMyMarker();
-      map.setView([myPosition.lat, myPosition.lng], 15, { animate: true });
-      btnLocate.classList.remove('locating');
-      if (!silent) showToast('定位成功 ✅');
-      // If destination already set, auto recalculate
-      if (destPosition) calculateRoutes();
-    },
-    err => {
-      btnLocate.classList.remove('locating');
-      let msg = '定位失败';
-      if (err.code === 1) msg = '请允许定位权限后重试';
-      else if (err.code === 2) msg = '无法获取位置信息，请检查GPS';
-      else if (err.code === 3) msg = '定位超时，请重试';
-      if (!silent) showToast(msg, true);
-      console.warn('Geolocation error:', err);
-    },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-  );
+  $('btnLocate').classList.add('locating');
+  navigator.geolocation.getCurrentPosition(p => {
+    myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (myMarker) map.removeLayer(myMarker);
+    myMarker = L.marker([myPos.lat, myPos.lng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('<b>📍 我的位置</b>').openPopup();
+    map.setView([myPos.lat, myPos.lng], 15, { animate: true });
+    $('btnLocate').classList.remove('locating');
+    if (!silent) showToast('定位成功 ✅');
+    if (destPos) calcRoutes();
+  }, e => {
+    $('btnLocate').classList.remove('locating');
+    if (!silent) showToast(e.code === 1 ? '请允许定位权限' : '定位失败，请检查GPS', true);
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
 
-function updateMyMarker() {
-  if (!myPosition) return;
-  if (myMarker) map.removeLayer(myMarker);
-  if (myAccuracyCircle) map.removeLayer(myAccuracyCircle);
-
-  myMarker = L.marker([myPosition.lat, myPosition.lng], { icon: meIcon, zIndexOffset: 1000 }).addTo(map);
-  myMarker.bindPopup('<b>📍 我的位置</b>').openPopup();
-}
-
-// ==================== Search / Geocoding ====================
-function buildSearchUrl(query) {
-  const params = new URLSearchParams({
-    q: query,
-    format: 'json',
-    limit: '5',
-    'accept-language': 'zh',
-    countrycodes: 'cn',
-    addressdetails: '1'
-  });
-  return `https://nominatim.openstreetmap.org/search?${params}`;
-}
-
-searchInput.addEventListener('input', () => {
-  const q = searchInput.value.trim();
-  searchClear.classList.toggle('show', q.length > 0);
-
-  clearTimeout(CONFIG.searchTimeout);
-  if (q.length < 2) { suggestions.classList.remove('show'); return; }
-
-  // Check cache
-  if (CONFIG.geocodingCache.has(q)) {
-    renderSuggestions(CONFIG.geocodingCache.get(q));
-    return;
+// ==================== Search ====================
+// 高德 Input Tips API（有 Key 时） > Nominatim（无 Key 时）
+function buildSearchUrl(q) {
+  if (CONFIG.amapKey) {
+    return `https://restapi.amap.com/v3/assistant/inputtips?key=${CONFIG.amapKey}&keywords=${encodeURIComponent(q)}&output=json`;
   }
+  return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh&countrycodes=cn`;
+}
 
-  CONFIG.searchTimeout = setTimeout(() => {
+$('searchInput').addEventListener('input', () => {
+  const q = $('searchInput').value.trim();
+  $('searchClear').classList.toggle('show', q.length > 0);
+  clearTimeout(CONFIG.searchTimer);
+  if (q.length < 1) { $('suggestions').classList.remove('show'); return; }
+  if (CONFIG.searchCache.has(q)) { renderSuggestions(CONFIG.searchCache.get(q)); return; }
+  CONFIG.searchTimer = setTimeout(() => {
     fetch(buildSearchUrl(q))
       .then(r => r.json())
-      .then(data => {
-        CONFIG.geocodingCache.set(q, data);
-        if (searchInput.value.trim() === q) renderSuggestions(data);
-      })
+      .then(d => { CONFIG.searchCache.set(q, d); if ($('searchInput').value.trim() === q) renderSuggestions(d); })
       .catch(() => {});
-  }, 400);
+  }, 350);
 });
 
-searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const q = searchInput.value.trim();
-    if (q) searchAndGo(q);
-  }
+$('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); const q = $('searchInput').value.trim(); if (q) searchAndGo(q); }
 });
-
-searchClear.addEventListener('click', () => {
-  searchInput.value = '';
-  searchClear.classList.remove('show');
-  suggestions.classList.remove('show');
-});
+$('searchClear').addEventListener('click', () => { $('searchInput').value = ''; $('searchClear').classList.remove('show'); $('suggestions').classList.remove('show'); });
 
 function renderSuggestions(data) {
-  if (!data || data.length === 0) {
-    suggestions.innerHTML = '<div class="sug-item" style="color:var(--text2);justify-content:center">未找到结果</div>';
-    suggestions.classList.add('show');
-    return;
+  const s = $('suggestions');
+  if (!data || (Array.isArray(data) && data.length === 0) || (data.tips && data.tips.length === 0)) {
+    s.innerHTML = '<div class="sug-item" style="color:var(--text2);justify-content:center">未找到结果</div>';
+    s.classList.add('show'); return;
   }
-  suggestions.innerHTML = data.map((item, i) => {
-    const name = item.display_name.split(',')[0] || item.display_name;
-    const addr = item.display_name.split(',').slice(1).join(',').trim();
-    const icon = item.category === 'railway' ? '🚉' :
-                 item.type === 'bus_station' ? '🚌' :
-                 item.category === 'amenity' ? '🏛️' : '📍';
-    return `<div class="sug-item" data-idx="${i}">
-      <span class="sug-icon">${icon}</span>
-      <div class="sug-text">
-        <div class="sug-name">${escapeHtml(name)}</div>
-        <div class="sug-addr">${escapeHtml(addr)}</div>
-      </div>
-    </div>`;
-  }).join('');
-  suggestions.classList.add('show');
+
+  // 高德 Input Tips 格式
+  if (data.tips) {
+    s.innerHTML = data.tips.filter(t => t.location && t.location !== '0,0').map((t, i) => `
+      <div class="sug-item" data-idx="${i}">
+        <span class="sug-icon">${t.tipType === 5 ? '🚉' : t.tipType === 4 ? '🚌' : '📍'}</span>
+        <div class="sug-text">
+          <div class="sug-name">${esc(t.name)}</div>
+          <div class="sug-addr">${esc(t.district || '')}${esc(t.address || '')}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    // Nominatim 格式
+    s.innerHTML = data.map((item, i) => `
+      <div class="sug-item" data-idx="${i}">
+        <span class="sug-icon">📍</span>
+        <div class="sug-text">
+          <div class="sug-name">${esc(item.display_name.split(',')[0])}</div>
+          <div class="sug-addr">${esc(item.display_name.split(',').slice(1).join(',').trim())}</div>
+        </div>
+      </div>`).join('');
+  }
+  s.classList.add('show');
 }
 
-suggestions.addEventListener('click', e => {
-  const item = e.target.closest('.sug-item');
-  if (!item) return;
-  const idx = parseInt(item.dataset.idx);
-  const q = searchInput.value.trim();
-  const data = CONFIG.geocodingCache.get(q);
-  if (data && data[idx]) {
-    selectDestination(data[idx]);
-  }
+$('suggestions').addEventListener('click', e => {
+  const item = e.target.closest('.sug-item'); if (!item) return;
+  const idx = +item.dataset.idx;
+  const q = $('searchInput').value.trim();
+  const data = CONFIG.searchCache.get(q);
+  if (!data) return;
+  $('suggestions').classList.remove('show');
+  if (data.tips) selectAmapTip(data.tips.filter(t => t.location && t.location !== '0,0')[idx]);
+  else selectNominatim(data[idx]);
 });
 
-function searchAndGo(query) {
-  suggestions.classList.remove('show');
-  searchInput.blur();
-  showLoading('搜索中...');
-  fetch(buildSearchUrl(query))
-    .then(r => r.json())
-    .then(data => {
-      hideLoading();
-      if (!data || data.length === 0) { showToast('未找到该地点', true); return; }
-      selectDestination(data[0]);
-    })
-    .catch(() => { hideLoading(); showToast('搜索失败，请检查网络', true); });
-}
-
-function selectDestination(item) {
-  destPosition = {
-    lat: parseFloat(item.lat),
-    lng: parseFloat(item.lon),
-    name: item.display_name.split(',')[0] || item.display_name
-  };
-  suggestions.classList.remove('show');
-  searchInput.value = destPosition.name;
-  searchClear.classList.add('show');
-
-  // Update marker
-  if (destMarker) map.removeLayer(destMarker);
-  destMarker = L.marker([destPosition.lat, destPosition.lng], { icon: destIcon, zIndexOffset: 999 }).addTo(map);
-
-  // Fit map to show both
-  if (myPosition) {
-    const bounds = L.latLngBounds(
-      [myPosition.lat, myPosition.lng],
-      [destPosition.lat, destPosition.lng]
-    );
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
-  } else {
-    map.setView([destPosition.lat, destPosition.lng], 15, { animate: true });
-  }
-
-  btnClear.style.display = 'flex';
-
-  updateSheetHeader();
-
-  if (!myPosition) {
-    showToast('请先点击 📍 定位你的位置');
-    locateMe(true);
-    return;
-  }
-
-  calculateRoutes();
-}
-
-function updateSheetHeader() {
-  if (destPosition) {
-    sheetTitle.innerHTML = `📍 ${escapeHtml(destPosition.name)}`;
-  }
-}
-
-// ==================== Routing ====================
-
-// -- OSRM Walking Route (free, no key) --
-function buildOsrmUrl(from, to) {
-  return `https://router.project-osrm.org/route/v1/foot/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&steps=true&alternatives=true&geometries=geojson&continue_straight=false`;
-}
-
-function parseOsrmRoute(data, idx) {
-  if (!data || !data.routes || !data.routes[idx]) return null;
-  const route = data.routes[idx];
-  const steps = [];
-  let totalWalkDist = 0;
-
-  route.legs.forEach(leg => {
-    leg.steps.forEach(step => {
-      const dist = Math.round(step.distance);
-      totalWalkDist += dist;
-      steps.push({
-        type: 'walk',
-        instruction: step.maneuver.type === 'depart' ? '从起点出发' :
-                     step.maneuver.type === 'arrive' ? '到达目的地' :
-                     step.maneuver.type === 'turn' ? `${step.maneuver.modifier || ''}转` :
-                     step.maneuver.type === 'new name' ? `沿路继续` :
-                     `继续前行`,
-        street: step.name || '无名路',
-        distance: dist,
-        duration: Math.round(step.duration)
-      });
-    });
-  });
-
-  return {
-    type: 'walking',
-    summary: {
-      distance: Math.round(route.distance),
-      duration: Math.round(route.duration),
-      walks: totalWalkDist
-    },
-    coords: route.geometry.coordinates.map(c => [c[1], c[0]]),
-    steps: steps,
-    label: `🚶 步行 ${formatDistance(route.distance)} · ${formatDuration(route.duration)}`
-  };
-}
-
-// -- ORS Public Transit Route (free key needed) --
-function buildOrsTransitUrl() {
-  return 'https://api.openrouteservice.org/v2/directions/public-transit';
-}
-
-function buildOrsTransitBody(from, to) {
-  return {
-    coordinates: [[from.lng, from.lat], [to.lng, to.lat]],
-    preference: 'recommended',
-    language: 'zh'
-  };
-}
-
-function parseOrsTransitRoute(data, idx) {
-  if (!data || !data.routes || !data.routes[idx]) return null;
-  const route = data.routes[idx];
-  const segments = route.segments || [];
-  const steps = [];
-  let totalWalk = 0;
-  let totalTransit = 0;
-  let metroCount = 0, busCount = 0;
-
-  segments.forEach(seg => {
-    seg.steps.forEach(step => {
-      const dist = Math.round(step.distance);
-      if (step.type === 'walk' || step.type === '11') {
-        totalWalk += dist;
-        steps.push({
-          type: 'walk',
-          instruction: step.instruction || '步行',
-          street: step.name || '',
-          distance: dist,
-          duration: Math.round(step.duration)
-        });
-      } else if (step.type === 'transit' || step.type === '12' || step.type === 'pt') {
-        totalTransit += dist;
-        const transitType = (step.name || '').includes('地铁') || (step.name || '').includes('Metro') || (step.name || '').includes('Subway') ? 'metro' : 'bus';
-        if (transitType === 'metro') metroCount++; else busCount++;
-        steps.push({
-          type: transitType,
-          instruction: step.instruction || `乘坐 ${step.name || '公共交通'}`,
-          line: step.name || '',
-          lineRef: step.ref || '',
-          departure: step.departure_stop || step.departure || '',
-          arrival: step.arrival_stop || step.arrival || '',
-          stops: step.stops || 0,
-          distance: dist,
-          duration: Math.round(step.duration)
-        });
-      } else if (step.type === 'transfer' || step.type === '13') {
-        steps.push({
-          type: 'transfer',
-          instruction: step.instruction || '换乘',
-          distance: dist,
-          duration: Math.round(step.duration)
-        });
-      }
-    });
-  });
-
-  // Build coordinate path from geometry
-  let coords = [];
-  if (route.geometry) {
-    // Decode polyline if needed, or use coordinates
-    if (route.geometry.coordinates) {
-      coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+function searchAndGo(q) {
+  $('suggestions').classList.remove('show');
+  $('searchInput').blur();
+  loading('搜索中...');
+  fetch(buildSearchUrl(q)).then(r => r.json()).then(d => {
+    loaded();
+    if (!d) { showToast('未找到该地点', true); return; }
+    if (d.tips) {
+      const tips = d.tips.filter(t => t.location && t.location !== '0,0');
+      if (!tips.length) { showToast('未找到该地点', true); return; }
+      selectAmapTip(tips[0]);
+    } else {
+      if (!d.length) { showToast('未找到该地点', true); return; }
+      selectNominatim(d[0]);
     }
-  }
-
-  return {
-    type: 'transit',
-    summary: {
-      distance: Math.round(route.summary?.distance || 0),
-      duration: Math.round(route.summary?.duration || 0),
-      walks: totalWalk,
-      transit: totalTransit,
-      metroCount, busCount
-    },
-    coords: coords,
-    steps: steps,
-    label: buildTransitLabel(route, metroCount, busCount, totalWalk)
-  };
+  }).catch(() => { loaded(); showToast('搜索失败，请检查网络', true); });
 }
 
-function buildTransitLabel(route, metroCount, busCount, walkDist) {
-  const dur = formatDuration(route.summary?.duration || 0);
-  let parts = [];
-  if (metroCount > 0) parts.push(`🚇 ${metroCount}次地铁`);
-  if (busCount > 0) parts.push(`🚌 ${busCount}次公交`);
-  if (walkDist > 200) parts.push(`🚶 步行${formatDistance(walkDist)}`);
-  return `${parts.join(' · ')} · ${dur}`;
+function selectAmapTip(tip) {
+  const [lng, lat] = tip.location.split(',').map(Number);
+  if (!lat || !lng) return;
+  setDest(lat, lng, tip.name, tip.district);
+}
+function selectNominatim(item) {
+  setDest(parseFloat(item.lat), parseFloat(item.lon), item.display_name.split(',')[0], '');
 }
 
-// ==================== Main Calculation ====================
-async function calculateRoutes() {
-  if (!myPosition || !destPosition) return;
+function setDest(lat, lng, name, district) {
+  destPos = { lat, lng, name, district: district || '' };
+  $('searchInput').value = name;
+  $('searchClear').classList.add('show');
+  if (destMarker) map.removeLayer(destMarker);
+  destMarker = L.marker([lat, lng], { icon: destIcon, zIndexOffset: 999 }).addTo(map);
+  if (myPos) map.fitBounds(L.latLngBounds([myPos.lat, myPos.lng], [lat, lng]), { padding: [60, 60], maxZoom: 15, animate: true });
+  else map.setView([lat, lng], 15, { animate: true });
+  $('btnClear').style.display = 'flex';
+  $('sheetTitle').innerHTML = `📍 ${esc(name)}`;
+  if (!myPos) { showToast('请先点击 📍 定位你的位置'); locateMe(true); return; }
+  calcRoutes();
+}
 
-  clearRoutes();
-  showLoading('计算路线中...');
-  sheetEmpty.style.display = 'none';
-  routeContent.style.display = 'block';
-  routeContent.innerHTML = '';
+// ==================== Route Calculation ====================
+async function calcRoutes() {
+  if (!myPos || !destPos) return;
+  clearMapRoutes();
+  loading('计算路线中...');
+  $('sheetEmpty').style.display = 'none';
+  $('routeContent').style.display = 'block';
+  $('routeContent').innerHTML = '';
   currentRoutes = [];
 
-  const from = { lat: myPosition.lat, lng: myPosition.lng };
-  const to = { lat: destPosition.lat, lng: destPosition.lng };
+  const from = `${myPos.lng},${myPos.lat}`;
+  const to = `${destPos.lng},${destPos.lat}`;
 
-  // 1. Always calculate walking route (OSRM - free)
-  try {
-    const resp = await fetch(buildOsrmUrl(from, to));
-    const data = await resp.json();
-    if (data.code === 'Ok') {
-      for (let i = 0; i < Math.min(data.routes.length, 2); i++) {
-        const route = parseOsrmRoute(data, i);
-        if (route) currentRoutes.push(route);
-      }
-    }
-  } catch(e) {
-    console.warn('OSRM walking route failed:', e);
-  }
-
-  // 2. Try transit route (ORS - needs API key)
-  if (CONFIG.orsKey) {
+  if (CONFIG.amapKey) {
+    // 高德：公交 + 步行 + 驾车
+    const [transit, walk, drive] = await Promise.allSettled([
+      fetchAmap('direction/transit/integrated', { origin: from, destination: to, city: getCity(myPos), cityd: getCity(destPos) }),
+      fetchAmap('direction/walking', { origin: from, destination: to }),
+      fetchAmap('direction/driving', { origin: from, destination: to })
+    ]);
+    if (transit.status === 'fulfilled' && transit.value) currentRoutes.push(...transit.value);
+    if (walk.status === 'fulfilled' && walk.value) currentRoutes.push(walk.value);
+    if (drive.status === 'fulfilled' && drive.value) currentRoutes.push(drive.value);
+  } else {
+    // 无 Key 时：OSRM 步行
     try {
-      const resp = await fetch(buildOrsTransitUrl(), {
-        method: 'POST',
-        headers: {
-          'Authorization': CONFIG.orsKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(buildOrsTransitBody(from, to))
-      });
-      const data = await resp.json();
-      if (data.routes && data.routes.length > 0) {
-        for (let i = 0; i < Math.min(data.routes.length, 2); i++) {
-          const route = parseOrsTransitRoute(data, i);
-          if (route) currentRoutes = [route, ...currentRoutes]; // transit first
+      const r = await fetch(`https://router.project-osrm.org/route/v1/foot/${myPos.lng},${myPos.lat};${destPos.lng},${destPos.lat}?overview=full&steps=true&alternatives=true&geometries=geojson`);
+      const d = await r.json();
+      if (d.code === 'Ok') {
+        for (let i = 0; i < Math.min(d.routes.length, 2); i++) {
+          const rt = d.routes[i];
+          const steps = [];
+          rt.legs.forEach(leg => leg.steps.forEach(s => steps.push({
+            type: 'walk', instruction: s.maneuver.type === 'depart' ? '从起点出发' : s.maneuver.type === 'arrive' ? '到达目的地' : s.maneuver.modifier || '继续前行',
+            distance: Math.round(s.distance), duration: Math.round(s.duration)
+          })));
+          currentRoutes.push({
+            type: 'walking',
+            summary: { distance: Math.round(rt.distance), duration: Math.round(rt.duration) },
+            coords: rt.geometry.coordinates.map(c => [c[1], c[0]]),
+            steps,
+            label: `🚶 步行 ${fmtDist(rt.distance)} · ${fmtDur(rt.duration)}`
+          });
         }
       }
-    } catch(e) {
-      console.warn('ORS transit route failed:', e);
-    }
+    } catch(e) {}
   }
 
-  // 3. Also fetch nearby transit stations (Overpass API - free)
-  fetchNearbyStations(from);
-
-  hideLoading();
-
-  if (currentRoutes.length === 0) {
-    routeContent.innerHTML = '<div class="sheet-empty" style="height:auto;padding:30px"><div class="sheet-empty-icon">😔</div><div class="sheet-empty-text">未找到路线，请尝试更近的目的地<br>或检查网络连接</div></div>';
+  loaded();
+  if (!currentRoutes.length) {
+    $('routeContent').innerHTML = '<div class="sheet-empty" style="height:auto;padding:30px"><div class="sheet-empty-icon">😔</div><div class="sheet-empty-text">未找到路线<br>请尝试更近的目的地或检查网络</div></div>';
     return;
   }
-
   activeRouteIdx = 0;
-  renderRouteTabs();
-  displayRoute(0);
-  sheet.classList.add('expanded');
-  sheet.classList.remove('collapsed');
+  renderTabs();
+  showRoute(0);
+  $('sheet').classList.add('expanded');
+  $('sheet').classList.remove('collapsed');
 }
 
-// ==================== Nearby Transit Stations (Overpass API) ====================
-async function fetchNearbyStations(pos) {
-  const radius = 2000; // 2km radius
-  const query = `[out:json];(node["public_transport"="station"](around:${radius},${pos.lat},${pos.lng});node["railway"="station"](around:${radius},${pos.lat},${pos.lng});node["railway"="subway_entrance"](around:${radius},${pos.lat},${pos.lng});node["highway"="bus_stop"](around:${radius},${pos.lat},${pos.lng}););out 30;`;
+async function fetchAmap(path, params) {
+  params.key = CONFIG.amapKey;
+  params.output = 'json';
+  const url = `https://restapi.amap.com/v3/${path}?${new URLSearchParams(params)}`;
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.status !== '1' || d.errcode) return null;
+  return parseAmapRoute(d, path);
+}
 
-  try {
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      body: query,
-      headers: { 'Content-Type': 'text/plain' }
+function parseAmapRoute(data, path) {
+  if (path.includes('transit')) {
+    const transits = (data.route || {}).transits || [];
+    return transits.map(t => {
+      const steps = [];
+      let metroN = 0, busN = 0;
+      let allCoords = [];
+      t.segments.forEach(seg => {
+        if (seg.walking) {
+          const w = seg.walking;
+          steps.push({ type: 'walk', instruction: w.distance > 1000 ? `步行 ${fmtDist(+w.distance)}` : '步行', distance: +w.distance, duration: +w.duration });
+          if (w.steps) w.steps.forEach(s => {
+            if (s.polyline) allCoords.push(...decodeAmapPolyline(s.polyline));
+          });
+        }
+        if (seg.bus && seg.bus.buslines) {
+          seg.bus.buslines.forEach(bl => {
+            const t = (bl.type || '').includes('地铁') ? 'metro' : 'bus';
+            if (t === 'metro') metroN++; else busN++;
+            steps.push({
+              type: t,
+              instruction: `乘坐 ${bl.name}`,
+              line: bl.name,
+              departure: (bl.departure_stop || {}).name || '',
+              arrival: (bl.arrival_stop || {}).name || '',
+              stops: bl.via_num || 0,
+              distance: +bl.distance, duration: +bl.duration
+            });
+            if (bl.polyline) allCoords.push(...decodeAmapPolyline(bl.polyline));
+          });
+        }
+      });
+      const parts = [];
+      if (metroN > 0) parts.push(`🚇 ${metroN}次地铁`);
+      if (busN > 0) parts.push(`🚌 ${busN}次公交`);
+      return {
+        type: 'transit',
+        summary: { distance: +t.distance, duration: +t.duration, metroCount: metroN, busCount: busN, walks: 0 },
+        coords: allCoords, steps,
+        label: `${parts.join(' · ')} · ${fmtDur(+t.duration)} · ¥${t.cost || '?'}`
+      };
     });
-    const data = await resp.json();
-
-    // Clear old station markers
-    stationMarkers.forEach(m => map.removeLayer(m));
-    stationMarkers = [];
-
-    data.elements.forEach(el => {
-      if (el.lat && el.lon) {
-        const name = el.tags?.name || el.tags?.name_en || '';
-        const type = el.tags?.railway === 'subway_entrance' ? '地铁口' :
-                     el.tags?.railway === 'station' ? '火车站' :
-                     el.tags?.highway === 'bus_stop' ? '公交站' :
-                     el.tags?.public_transport === 'station' ? '交通枢纽' : '站点';
-        if (!name) return;
-
-        const m = L.marker([el.lat, el.lon], { icon: stationIcon, zIndexOffset: 500 })
-          .addTo(map)
-          .bindPopup(`<b>${escapeHtml(name)}</b><br><small>${type}</small>`);
-        stationMarkers.push(m);
-      }
-    });
-  } catch(e) {
-    // Silent fail - nearby stations are a bonus feature
   }
+  if (path.includes('walking')) {
+    const rt = (data.route || {}).paths ? data.route.paths[0] : null;
+    if (!rt) return null;
+    const steps = (rt.steps || []).map(s => ({
+      type: 'walk',
+      instruction: s.instruction || '步行',
+      distance: +s.distance, duration: +s.duration
+    }));
+    let coords = [];
+    (rt.steps || []).forEach(s => { if (s.polyline) coords.push(...decodeAmapPolyline(s.polyline)); });
+    if (!coords.length && rt.steps) {
+      coords = rt.steps.map(s => [s.start_location.split(',').map(Number)[1], s.start_location.split(',').map(Number)[0]]);
+    }
+    return { type: 'walking', summary: { distance: +rt.distance, duration: +rt.duration }, coords, steps, label: `🚶 步行 ${fmtDist(+rt.distance)} · ${fmtDur(+rt.duration)}` };
+  }
+  if (path.includes('driving')) {
+    const rt = (data.route || {}).paths ? data.route.paths[0] : null;
+    if (!rt) return null;
+    const steps = (rt.steps || []).map(s => ({
+      type: 'walk', // driving 用 walk 图标表示，语义上就是"移动"
+      instruction: s.instruction || '驾车',
+      distance: +s.distance, duration: +s.duration
+    }));
+    let coords = [];
+    (rt.steps || []).forEach(s => { if (s.polyline) coords.push(...decodeAmapPolyline(s.polyline)); });
+    return { type: 'walking', summary: { distance: +rt.distance, duration: +rt.duration }, coords, steps, label: `🚗 驾车 ${fmtDist(+rt.distance)} · ${fmtDur(+rt.duration)}` };
+  }
+  return null;
+}
+
+// 高德 polyline 解码
+function decodeAmapPolyline(encoded) {
+  if (!encoded) return [];
+  const coords = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1 ? ~(result >> 1) : (result >> 1));
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1 ? ~(result >> 1) : (result >> 1));
+    coords.push([lat / 1e6, lng / 1e6]);
+  }
+  return coords;
+}
+
+// 根据坐标推算城市名（高德公交API需要city参数）
+function getCity(pos) {
+  if (destPos && destPos.district) return destPos.district.slice(0, 2);
+  return '全国';
 }
 
 // ==================== Display ====================
-function renderRouteTabs() {
-  const tabs = currentRoutes.map((r, i) => {
-    const icon = r.type === 'walking' ? '🚶' : '🚇';
-    const active = i === activeRouteIdx ? ' active' : '';
-    return `<button class="route-tab${active}" data-idx="${i}">${icon} ${r.label}</button>`;
-  }).join('');
-
-  sheetTitle.innerHTML = `📍 ${escapeHtml(destPosition?.name || '目的地')}`;
-  sheetMeta.innerHTML = `共 ${currentRoutes.length} 条路线方案`;
-  routeContent.innerHTML = `
-    <div class="route-tabs">${tabs}</div>
-    <div id="stepContainer"></div>
-  `;
-
-  // Tab click
-  routeContent.querySelectorAll('.route-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      activeRouteIdx = parseInt(tab.dataset.idx);
-      renderRouteTabs();
-      displayRoute(activeRouteIdx);
-    });
-  });
+function renderTabs() {
+  $('sheetTitle').innerHTML = `📍 ${esc(destPos?.name || '目的地')}`;
+  $('sheetMeta').textContent = `共 ${currentRoutes.length} 条方案`;
+  $('routeContent').innerHTML = `
+    <div class="route-tabs">${currentRoutes.map((r, i) => `<button class="route-tab${i === activeRouteIdx ? ' active' : ''}" data-idx="${i}">${esc(r.label)}</button>`).join('')}</div>
+    <div id="stepContainer"></div>`;
+  $('routeContent').querySelectorAll('.route-tab').forEach(t => t.addEventListener('click', () => {
+    activeRouteIdx = +t.dataset.idx; renderTabs(); showRoute(activeRouteIdx);
+  }));
 }
 
-function displayRoute(idx) {
-  const route = currentRoutes[idx];
-  if (!route) return;
-
-  // Clear map routes
+function showRoute(idx) {
+  const r = currentRoutes[idx]; if (!r) return;
   clearMapRoutes();
-
-  // Draw route on map
-  if (route.coords && route.coords.length > 1) {
-    const color = route.type === 'walking' ? '#F39C12' : '#4A90D9';
-    const line = L.polyline(route.coords, {
-      color: color,
-      weight: 5,
-      opacity: .7,
-      dashArray: route.type === 'walking' ? '10 6' : null
-    }).addTo(map);
+  if (r.coords && r.coords.length > 1) {
+    const c = r.type === 'walking' ? '#F39C12' : '#4A90D9';
+    const line = L.polyline(r.coords, { color: c, weight: 5, opacity: .7, dashArray: r.type === 'walking' ? '10 6' : null }).addTo(map);
     routeLines.push(line);
-
-    // Fit bounds
-    const bounds = L.latLngBounds(route.coords);
-    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
+    map.fitBounds(L.latLngBounds(r.coords), { padding: [60, 60], maxZoom: 15, animate: true });
   }
-
-  // Render steps
-  const stepContainer = $('stepContainer');
-  if (!stepContainer) return;
-
-  const summary = route.summary;
-  const modeLabels = route.type === 'walking' ?
-    [{ val: formatDistance(summary.distance), label: '总距离' },
-     { val: formatDuration(summary.duration), label: '预计时间' },
-     { val: Math.round(summary.walks / (summary.duration/60) * 60) + ' m/min', label: '步行速度' }] :
-    [
-     { val: formatDuration(summary.duration), label: '预计时间' },
-     { val: formatDistance(summary.distance), label: '总距离' },
-     { val: summary.metroCount + ' 条地铁', label: '地铁' },
-     { val: summary.busCount + ' 条公交', label: '公交' }
-    ];
-
-  const metaHtml = sheetMeta;
-  if (metaHtml) {
-    metaHtml.innerHTML = route.label;
-  }
-
-  let stepsHtml = `
-    <div class="route-summary">
-      ${modeLabels.filter(m => !m.val.startsWith('0')).map(m => `
-        <div class="route-summary-item">
-          <div class="route-summary-val">${m.val}</div>
-          <div class="route-summary-label">${m.label}</div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="step-list">
-  `;
-
-  // Group walking steps for cleaner display
-  let walkingBuffer = [];
-  const flushWalking = () => {
-    if (walkingBuffer.length === 0) return;
-    if (walkingBuffer.length === 1) {
-      stepsHtml += renderStep(walkingBuffer[0]);
-    } else {
-      const totalDist = walkingBuffer.reduce((s, st) => s + (st.distance || 0), 0);
-      const totalDur = walkingBuffer.reduce((s, st) => s + (st.duration || 0), 0);
-      stepsHtml += renderStep({
-        type: 'walk',
-        instruction: '沿路步行',
-        distance: totalDist,
-        duration: totalDur
-      });
+  const sc = $('stepContainer'); if (!sc) return;
+  const s = r.summary;
+  const items = r.type === 'transit' ? [
+    { val: fmtDur(s.duration), label: '预计时间' },
+    { val: fmtDist(s.distance), label: '总距离' },
+    { val: (s.metroCount || 0) + ' 条', label: '地铁' },
+    { val: (s.busCount || 0) + ' 条', label: '公交' }
+  ] : [
+    { val: fmtDist(s.distance), label: '距离' },
+    { val: fmtDur(s.duration), label: '时间' }
+  ];
+  $('sheetMeta').textContent = r.label;
+  let h = `<div class="route-summary">${items.filter(m => !m.val.startsWith('0')).map(m => `<div class="route-summary-item"><div class="route-summary-val">${m.val}</div><div class="route-summary-label">${m.label}</div></div>`).join('')}</div><div class="step-list">`;
+  let buf = [];
+  const flush = () => {
+    if (!buf.length) return;
+    if (buf.length === 1) h += renderStep(buf[0]);
+    else {
+      const td = buf.reduce((s, st) => s + (st.distance || 0), 0);
+      h += renderStep({ type: 'walk', instruction: '沿路步行', distance: td });
     }
-    walkingBuffer = [];
+    buf = [];
   };
-
-  route.steps.forEach((step, i) => {
-    if (step.type === 'walk') {
-      walkingBuffer.push(step);
-    } else {
-      flushWalking();
-      stepsHtml += renderStep(step);
-    }
-  });
-  flushWalking();
-
-  stepsHtml += '</div>';
-
-  // Add note about API key if no transit routes
-  if (route.type === 'walking' && currentRoutes.every(r => r.type === 'walking')) {
-    stepsHtml += `
-      <div style="margin-top:20px;padding:16px;background:#FFF9E6;border-radius:var(--radius-sm);font-size:13px;color:#8B6914;line-height:1.7">
-        💡 <b>提示：</b>当前仅显示步行路线。<br>
-        点击右上角 ⚙️ 设置，填入免费 ORS API Key 即可查看公交/地铁换乘方案。<br>
-        <a href="https://openrouteservice.org/dev/#/signup" target="_blank" style="color:var(--primary)">免费获取 Key →</a>
-      </div>`;
+  r.steps.forEach(st => { if (st.type === 'walk') buf.push(st); else { flush(); h += renderStep(st); } });
+  flush();
+  h += '</div>';
+  if (r.type === 'walking' && currentRoutes.every(x => x.type === 'walking') && !CONFIG.amapKey) {
+    h += `<div style="margin-top:20px;padding:16px;background:#FFF9E6;border-radius:var(--radius-sm);font-size:13px;color:#8B6914;line-height:1.7">💡 <b>提示：</b>当前仅显示步行路线。<br>点击右上角 ⚙️ 设置，填入高德 API Key 即可查看公交/地铁换乘方案。<br><a href="https://lbs.amap.com/" target="_blank" style="color:var(--primary)">免费获取高德 Key →</a></div>`;
   }
-
-  stepContainer.innerHTML = stepsHtml;
+  sc.innerHTML = h;
 }
 
-function renderStep(step) {
-  let iconWrap = '', icon = '', badge = '';
-  switch(step.type) {
-    case 'metro':
-      iconWrap = 'metro'; icon = '🚇';
-      badge = step.line ? `<span class="step-line-badge metro">${escapeHtml(step.line)}</span>` : '';
-      break;
-    case 'bus':
-      iconWrap = 'bus'; icon = '🚌';
-      badge = step.line ? `<span class="step-line-badge bus">${escapeHtml(step.line)}</span>` : '';
-      break;
-    case 'walk':
-      iconWrap = 'walk'; icon = '🚶';
-      break;
-    case 'transfer':
-      iconWrap = 'transfer'; icon = '🔄';
-      break;
-  }
-
-  const detail = [];
-  if (step.departure) detail.push(`从 <b>${escapeHtml(step.departure)}</b> 上车`);
-  if (step.arrival) detail.push(`在 <b>${escapeHtml(step.arrival)}</b> 下车`);
-  if (step.stops > 0) detail.push(`途经 ${step.stops} 站`);
-  if (step.distance && step.distance > 0) detail.push(formatDistance(step.distance));
-  if (step.duration && step.duration > 0) detail.push(formatDuration(step.duration));
-
-  return `
-    <div class="step">
-      <div class="step-icon-wrap ${iconWrap}">${icon}</div>
-      <div class="step-content">
-        <div class="step-title">${escapeHtml(step.instruction || '')}${badge}</div>
-        ${detail.length > 0 ? `<div class="step-detail">${detail.join(' · ')}</div>` : ''}
-      </div>
-    </div>`;
+function renderStep(s) {
+  const cfg = { metro: ['metro','🚇'], bus: ['bus','🚌'], walk: ['walk','🚶'], transfer: ['transfer','🔄'] };
+  const [cls, icon] = cfg[s.type] || ['walk','🚶'];
+  const badge = s.line ? `<span class="step-line-badge ${cls}">${esc(s.line)}</span>` : '';
+  const det = [];
+  if (s.departure) det.push(`从 <b>${esc(s.departure)}</b> 上车`);
+  if (s.arrival) det.push(`在 <b>${esc(s.arrival)}</b> 下车`);
+  if (s.stops > 0) det.push(`途经 ${s.stops} 站`);
+  if (s.distance > 0) det.push(fmtDist(s.distance));
+  if (s.duration > 0) det.push(fmtDur(s.duration));
+  return `<div class="step"><div class="step-icon-wrap ${cls}">${icon}</div><div class="step-content"><div class="step-title">${esc(s.instruction || '')}${badge}</div>${det.length ? `<div class="step-detail">${det.join(' · ')}</div>` : ''}</div></div>`;
 }
 
 // ==================== Map Helpers ====================
-function clearMapRoutes() {
-  routeLines.forEach(l => map.removeLayer(l));
-  routeLines = [];
-  routeMarkers.forEach(m => map.removeLayer(m));
-  routeMarkers = [];
-}
-
-function clearRoutes() {
-  clearMapRoutes();
-  currentRoutes = [];
-  activeRouteIdx = 0;
-  routeContent.innerHTML = '';
-  routeContent.style.display = 'none';
-  sheetEmpty.style.display = 'flex';
-}
-
+function clearMapRoutes() { routeLines.forEach(l => map.removeLayer(l)); routeLines = []; }
 function clearAll() {
-  clearRoutes();
+  clearMapRoutes(); currentRoutes = []; activeRouteIdx = 0;
+  $('routeContent').innerHTML = ''; $('routeContent').style.display = 'none'; $('sheetEmpty').style.display = 'flex';
   if (destMarker) { map.removeLayer(destMarker); destMarker = null; }
-  destPosition = null;
-  searchInput.value = '';
-  searchClear.classList.remove('show');
-  stationMarkers.forEach(m => map.removeLayer(m));
-  stationMarkers = [];
-  btnClear.style.display = 'none';
-  sheet.classList.remove('expanded');
-  sheet.classList.add('collapsed');
-  sheetTitle.textContent = '🗺️ 想去哪里？';
-  sheetMeta.textContent = '';
-
-  if (myPosition) {
-    map.setView([myPosition.lat, myPosition.lng], 15, { animate: true });
-  }
+  destPos = null; $('searchInput').value = ''; $('searchClear').classList.remove('show');
+  $('btnClear').style.display = 'none';
+  $('sheet').classList.remove('expanded'); $('sheet').classList.add('collapsed');
+  $('sheetTitle').textContent = '🗺️ 想去哪里？'; $('sheetMeta').textContent = '';
+  if (myPos) map.setView([myPos.lat, myPos.lng], 15, { animate: true });
 }
 
-// ==================== Sheet Interaction ====================
-let sheetStartY = 0;
-let sheetStartTransform = 0;
-let isDragging = false;
-
+// ==================== Sheet Gesture ====================
+let sy = 0, st = 0, dragging = false;
 $('sheetHandle').addEventListener('pointerdown', e => {
-  isDragging = true;
-  sheetStartY = e.clientY;
-  const computed = getComputedStyle(sheet).transform;
-  sheetStartTransform = 0;
-  if (computed && computed !== 'none') {
-    const matrix = new DOMMatrixReadOnly(computed);
-    sheetStartTransform = matrix.m42; // translateY
-  }
-  sheet.style.transition = 'none';
+  dragging = true; sy = e.clientY;
+  const m = getComputedStyle($('sheet')).transform;
+  st = m && m !== 'none' ? new DOMMatrixReadOnly(m).m42 : 0;
+  $('sheet').style.transition = 'none';
 });
-
 document.addEventListener('pointermove', e => {
-  if (!isDragging) return;
-  const dy = e.clientY - sheetStartY;
-  const newY = Math.min(0, Math.max(sheetStartTransform + dy, -window.innerHeight * 0.6));
-  sheet.style.transform = `translateY(${newY}px)`;
+  if (!dragging) return;
+  $('sheet').style.transform = `translateY(${Math.min(0, Math.max(st + e.clientY - sy, -window.innerHeight * 0.6))}px)`;
 });
-
 document.addEventListener('pointerup', () => {
-  if (!isDragging) return;
-  isDragging = false;
-  sheet.style.transition = '';
-
-  const computed = getComputedStyle(sheet).transform;
-  let currentY = 0;
-  if (computed && computed !== 'none') {
-    currentY = new DOMMatrixReadOnly(computed).m42;
-  }
-
-  // Snap to expanded or collapsed
-  const threshold = -window.innerHeight * 0.15;
-  if (currentY < threshold) {
-    sheet.classList.add('expanded');
-    sheet.classList.remove('collapsed');
-  } else {
-    sheet.classList.remove('expanded');
-    sheet.classList.add('collapsed');
-  }
+  if (!dragging) return;
+  dragging = false; $('sheet').style.transition = '';
+  const y = new DOMMatrixReadOnly(getComputedStyle($('sheet').transform)).m42;
+  if (y < -window.innerHeight * 0.15) $('sheet').classList.replace('collapsed', 'expanded');
+  else $('sheet').classList.replace('expanded', 'collapsed');
 });
-
-// Click on sheet header area also toggles
 $('sheetHeader').addEventListener('click', () => {
-  if (isDragging) return;
-  if (sheet.classList.contains('expanded')) {
-    sheet.classList.remove('expanded');
-    sheet.classList.add('collapsed');
-  } else if (destPosition) {
-    sheet.classList.add('expanded');
-    sheet.classList.remove('collapsed');
-  }
+  if (dragging) return;
+  if ($('sheet').classList.contains('expanded')) $('sheet').classList.replace('expanded', 'collapsed');
+  else if (destPos) $('sheet').classList.replace('collapsed', 'expanded');
 });
 
-// ==================== Buttons ====================
-btnLocate.addEventListener('click', () => locateMe());
-btnClear.addEventListener('click', clearAll);
-
-btnSettings.addEventListener('click', () => {
-  settingsModal.classList.add('show');
-});
-
-$('closeSettings').addEventListener('click', () => {
-  settingsModal.classList.remove('show');
-});
+// ==================== Settings ====================
+$('btnLocate').addEventListener('click', () => locateMe());
+$('btnClear').addEventListener('click', clearAll);
+$('btnSettings').addEventListener('click', () => $('settingsModal').classList.add('show'));
+$('closeSettings').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+$('settingsModal').addEventListener('click', e => { if (e.target === $('settingsModal')) $('settingsModal').classList.remove('show'); });
 
 $('saveSettings').addEventListener('click', () => {
-  CONFIG.orsKey = orsKeyInput.value.trim();
-  CONFIG.tileStyle = document.querySelector('#tileOptions .route-tab.active')?.dataset?.tile || 'osm';
-
-  // Save
-  localStorage.setItem('transitgo_config', JSON.stringify({
-    orsKey: CONFIG.orsKey,
-    tileStyle: CONFIG.tileStyle
-  }));
-
-  // Update tile
+  CONFIG.amapKey = $('amapKeyInput').value.trim();
+  CONFIG.tileStyle = document.querySelector('#tileOptions .route-tab.active')?.dataset?.tile || 'amap';
+  localStorage.setItem('transitgo_config', JSON.stringify({ amapKey: CONFIG.amapKey, tileStyle: CONFIG.tileStyle }));
   map.removeLayer(currentTile);
-  currentTile = tileLayers[CONFIG.tileStyle] || tileLayers['osm'];
+  currentTile = tileLayers[CONFIG.tileStyle] || tileLayers['amap'];
   currentTile.addTo(map);
-
-  settingsModal.classList.remove('show');
+  CONFIG.searchCache.clear();
+  $('settingsModal').classList.remove('show');
   showToast('设置已保存 ✅');
-
-  // Recalculate if both positions exist
-  if (myPosition && destPosition) calculateRoutes();
+  if (myPos && destPos) calcRoutes();
 });
 
-settingsModal.addEventListener('click', e => {
-  if (e.target === settingsModal) settingsModal.classList.remove('show');
-});
+document.querySelectorAll('#tileOptions .route-tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#tileOptions .route-tab').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+}));
+const atb = document.querySelector(`#tileOptions [data-tile="${CONFIG.tileStyle}"]`);
+if (atb) { document.querySelectorAll('#tileOptions .route-tab').forEach(b => b.classList.remove('active')); atb.classList.add('active'); }
 
-// Tile style buttons
-document.querySelectorAll('#tileOptions .route-tab').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#tileOptions .route-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  });
-});
+// ==================== Keyboard ====================
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('suggestions').classList.remove('show'); $('settingsModal').classList.remove('show'); $('searchInput').blur(); }});
 
-// Init active tile button
-const activeTileBtn = document.querySelector(`#tileOptions [data-tile="${CONFIG.tileStyle}"]`);
-if (activeTileBtn) {
-  document.querySelectorAll('#tileOptions .route-tab').forEach(b => b.classList.remove('active'));
-  activeTileBtn.classList.add('active');
-}
+// ==================== Utils ====================
+function fmtDist(m) { return m < 1000 ? Math.round(m) + ' 米' : (m / 1000).toFixed(1) + ' 公里'; }
+function fmtDur(s) { if (s < 60) return Math.round(s) + '秒'; if (s < 3600) return Math.round(s / 60) + '分钟'; const h = Math.floor(s / 3600); const m = Math.round((s % 3600) / 60); return h + '小时' + (m ? m + '分钟' : ''); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-// ==================== Keyboard Shortcuts ====================
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    suggestions.classList.remove('show');
-    settingsModal.classList.remove('show');
-    searchInput.blur();
-  }
-});
-
-// ==================== Init ====================
-function init() {
-  // Auto-locate on load
-  locateMe(true);
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    map.invalidateSize();
-  });
-
-  // Hide suggestions on map click
-  map.on('click', () => {
-    suggestions.classList.remove('show');
-    searchInput.blur();
-  });
-
-  // Handle map move for dynamic nearby stations (debounced)
-  let stationFetchTimer;
-  map.on('moveend', () => {
-    clearTimeout(stationFetchTimer);
-    if (destPosition && myPosition) {
-      // Don't re-fetch stations during navigation to avoid noise
-    }
-  });
-}
-
-// ==================== Utilities ====================
-function formatDistance(meters) {
-  if (meters < 1000) return Math.round(meters) + ' 米';
-  return (meters / 1000).toFixed(1) + ' 公里';
-}
-
-function formatDuration(seconds) {
-  if (seconds < 60) return Math.round(seconds) + ' 秒';
-  if (seconds < 3600) return Math.round(seconds / 60) + ' 分钟';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return h + ' 小时' + (m > 0 ? m + ' 分钟' : '');
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ==================== Boot ====================
-init();
-console.log('🚇 Transit Go · 出行导航 已就绪');
+// ---- Init ----
+locateMe(true);
+window.addEventListener('resize', () => map.invalidateSize());
+map.on('click', () => { $('suggestions').classList.remove('show'); $('searchInput').blur(); });
+console.log('🚇 Transit Go · 高德地图版 已就绪');
 console.log('📍 点击定位按钮获取当前位置');
 console.log('🔍 搜索目的地自动规划路线');
-console.log('⚙️ 设置 ORS Key 启用公交地铁路线');
+console.log('⚙️ 设置高德 Key 启用公交地铁路线');
 </script>
-
 </body>
 </html>
