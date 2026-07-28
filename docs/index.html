@@ -89,7 +89,8 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .fav-item-del{width:28px;height:28px;border:none;background:var(--g200);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--g400);flex-shrink:0}
 
 /* ===== Bottom Route Card ===== */
-.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);max-height:70vh;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.25,.8,.25,1)}
+.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);max-height:70vh;display:flex;flex-direction:column;transform:translateY(calc(100% - 56px));transition:transform .35s cubic-bezier(.25,.8,.25,1)}
+.route-card-bot.open{transform:translateY(0)}
 .rc-handle{display:flex;justify-content:center;padding:12px 0 6px;cursor:pointer;flex-shrink:0}
 .rc-handle-bar{width:32px;height:4px;border-radius:2px;background:var(--g200)}
 .rc-header{display:flex;align-items:center;justify-content:space-between;padding:0 18px 10px;flex-shrink:0}
@@ -149,7 +150,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .custom-div-icon{border:none!important;background:none!important}
 
 @media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:480px;left:50%;transform:translateX(-50%)}}
-@media(min-width:1024px){.route-card-bot{left:50%;max-width:500px;transform:translateX(-50%)!important}}
+@media(min-width:1024px){.route-card-bot{left:50%;max-width:500px;transform:translate(-50%,calc(100% - 56px))}.route-card-bot.open{transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
@@ -428,7 +429,7 @@ async function calcRoutes(){
   }
   ul();
   if(!currentRoutes.length){$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">😔 未找到路线</div>';return;}
-  activeIdx=0;renderTabs();showRoute(0);showCard();$('btnSaveRoute').style.display='flex';
+  activeIdx=0;renderTabs();showRoute(0);openCard();$('btnSaveRoute').style.display='flex';
 }
 
 async function findNearestTransit(pos){
@@ -557,41 +558,37 @@ function renderStep(num,s){
 // ==================== Helpers ====================
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 
-// ==================== Route Card Drag & Toggle ====================
-let cardY=0,dragSy=0,dragStart=0,dragging=false;
-function setCardY(y){
-  cardY=Math.min(0,Math.max(y,-window.innerHeight*.7));
-  $('routeCard').style.transform=`translateY(${Math.round(cardY)}px)`;
-}
-function peekCard(){setCardY(-56);}
-function showCard(){setCardY(-window.innerHeight*.45);}
+// ==================== Route Card ====================
+let dragSy=0,dragStart=0,dragging=false;
+const cardEl=$('routeCard');
 
-$('routeCard').addEventListener('transitionend',()=>{$('routeCard').style.transition='';});
+function openCard(){cardEl.style.transform='';cardEl.classList.add('open');}
+function closeCard(){cardEl.classList.remove('open');cardEl.style.transform='';}
+function toggleCard(){cardEl.classList.contains('open')?closeCard():openCard();}
+
+cardEl.addEventListener('transitionend',()=>{cardEl.style.transition='';});
 
 $('routeHandle').addEventListener('pointerdown',e=>{
-  $('routeCard').style.transition='none';
-  dragging=true;dragSy=e.clientY;dragStart=cardY;
+  cardEl.style.transition='none';
+  dragging=true;dragSy=e.clientY;
+  const m=getComputedStyle(cardEl).transform;
+  dragStart=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;
 });
 document.addEventListener('pointermove',e=>{
   if(!dragging)return;
-  setCardY(dragStart+e.clientY-dragSy);
+  const y=Math.min(0,Math.max(dragStart+e.clientY-dragSy,-window.innerHeight*.7));
+  cardEl.style.transform=cardEl.classList.contains('open')?`translateY(${Math.round(y)}px)`:`translateY(calc(100% - 56px + ${Math.round(y-dragStart)}px))`;
 });
 document.addEventListener('pointerup',()=>{
   if(!dragging)return;dragging=false;
-  $('routeCard').style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
-  // Snap: if mostly hidden, collapse; if expanded far, stay expanded; else near middle
-  const h=window.innerHeight;
-  if(cardY>-h*.1)peekCard();
-  else if(cardY<-h*.55)showCard();
-  // else stay where dragged
+  cardEl.style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
+  const m=getComputedStyle(cardEl).transform;
+  const y=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;
+  cardEl.style.transform='';
+  if(y<-window.innerHeight*.1)openCard();else closeCard();
 });
 
-$('routeHandle').addEventListener('click',e=>{
-  if(dragging)return;
-  const h=window.innerHeight;
-  $('routeCard').style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
-  if(cardY>-h*.1)showCard();else peekCard();
-});
+$('routeHandle').addEventListener('click',e=>{if(!dragging)toggleCard();});
 
 // ==================== Settings ====================
 $('settingsArrow').addEventListener('click',()=>{
@@ -647,7 +644,6 @@ function fmtDur(s){if(s<60)return Math.round(s)+'秒';if(s<3600)return Math.roun
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 
 // ==================== Init ====================
-peekCard();
 locateMe(true);
 window.addEventListener('resize',()=>map.invalidateSize());
 </script>
