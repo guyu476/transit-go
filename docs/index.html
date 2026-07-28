@@ -291,8 +291,7 @@ function updateToMarker(){
 
 // ==================== Search ====================
 function searchUrl(q){
-  if(CFG.amapKey)return `https://restapi.amap.com/v3/assistant/inputtips?key=${CFG.amapKey}&keywords=${encodeURIComponent(q)}&output=json`;
-  return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh&countrycodes=cn`;
+  return `https://restapi.amap.com/v3/assistant/inputtips?key=${CFG.amapKey}&keywords=${encodeURIComponent(q)}&output=json`;
 }
 
 function checkAmapError(d){
@@ -335,35 +334,25 @@ function searchCurrent(){
   $('suggestions').classList.remove('show');inp.blur();ld('搜索中...');
   fetch(searchUrl(q)).then(r=>r.json()).then(d=>{
     ul();if(checkAmapError(d))return;
-    if(!d){toast('未找到',1);return;}
-    let lat,lng,name,district;
-    if(d.tips){
-      const t=d.tips.filter(t=>t.location&&t.location!=='0,0')[0];
-      if(!t){toast('未找到',1);return;}
-      [lng,lat]=t.location.split(',').map(Number);
-      name=t.name;district=t.district||'';
-    }else{
-      if(!d.length){toast('未找到',1);return;}
-      lat=+d[0].lat;lng=+d[0].lon;
-      name=d[0].display_name.split(',')[0];district='';
-    }
-    if(!validCoord(lat,lng)){toast('坐标异常，请重试或检查高德Key类型（需Web服务）',1);return;}
-    setPos(name,lat,lng,district);
-  }).catch(()=>{ul();toast('搜索失败，检查网络',1);});
+    const tips=(d&&d.tips||[]).filter(t=>t.location&&t.location!=='0,0');
+    if(!tips.length){toast('未找到',1);return;}
+    const t=tips[0];
+    const[lng,lat]=t.location.split(',').map(Number);
+    if(!validCoord(lat,lng)){toast('坐标异常',1);return;}
+    setPos(t.name,lat,lng,t.district||'');
+  }).catch(()=>{ul();toast('搜索失败',1);});
 }
 
 function renderSuggestions(data){
   const s=$('suggestions');
   if(checkAmapError(data)){s.classList.remove('show');return;}
-  const empty=!data||(Array.isArray(data)&&!data.length)||(data.tips&&!data.tips.filter(t=>t.location&&t.location!=='0,0').length);
-  if(empty){s.innerHTML='<div class="sug-item" style="color:var(--g400);justify-content:center">未找到结果</div>';s.classList.add('show');return;}
-  let items='';
-  if(data.tips){
-    items=data.tips.filter(t=>t.location&&t.location!=='0,0').map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">${t.tipType===5?'🚉':t.tipType===4?'🚌':'📍'}</span><div class="sug-text"><div class="sug-name">${esc(t.name)}</div><div class="sug-addr">${esc(t.district||'')}${esc(t.address||'')}</div></div></div>`).join('');
-  }else{
-    items=data.map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">📍</span><div class="sug-text"><div class="sug-name">${esc(t.display_name.split(',')[0])}</div><div class="sug-addr">${esc(t.display_name.split(',').slice(1).join(',').trim())}</div></div></div>`).join('');
-  }
-  s.innerHTML=items;s.classList.add('show');
+  const tips=(data&&data.tips||[]).filter(t=>t.location&&t.location!=='0,0');
+  if(!tips.length){s.innerHTML='<div class="sug-item" style="color:var(--g400);justify-content:center">未找到结果</div>';s.classList.add('show');return;}
+  s.innerHTML=tips.map((t,i)=>`<div class="sug-item" data-idx="${i}">
+    <span class="sug-icon">${t.tipType===5?'🚉':t.tipType===4?'🚌':'📍'}</span>
+    <div class="sug-text"><div class="sug-name">${esc(t.name)}</div><div class="sug-addr">${esc(t.district||'')}${esc(t.address||'')}</div></div>
+  </div>`).join('');
+  s.classList.add('show');
 }
 
 $('suggestions').addEventListener('click',e=>{
@@ -371,12 +360,13 @@ $('suggestions').addEventListener('click',e=>{
   const idx=+it.dataset.idx;
   const data=CFG.cache.get(getInp().value.trim());
   if(!data||checkAmapError(data)){$('suggestions').classList.remove('show');return;}
-  let lat,lng,name,district;
-  if(data.tips){const t=data.tips.filter(t=>t.location&&t.location!=='0,0')[idx];[lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';}
-  else{lat=+data[idx].lat;lng=+data[idx].lon;name=data[idx].display_name.split(',')[0];district='';}
+  const tips=(data.tips||[]).filter(t=>t.location&&t.location!=='0,0');
+  if(!tips[idx])return;
+  const t=tips[idx];
+  const[lng,lat]=t.location.split(',').map(Number);
   $('suggestions').classList.remove('show');
-  if(!validCoord(lat,lng)){toast('坐标异常，请检查高德Key类型',1);return;}
-  setPos(name,lat,lng,district);
+  if(!validCoord(lat,lng)){toast('坐标异常',1);return;}
+  setPos(t.name,lat,lng,t.district||'');
 });
 
 function setPos(name,lat,lng,district){
@@ -418,42 +408,33 @@ function fitBoth(){
   }else{const p=fromPos||toPos;if(p&&p.lat)map.setView([p.lat,p.lng],15,{animate:true});}
 }
 
-// ==================== Routes ====================
+// ==================== Routes (高德唯一) ====================
 async function calcRoutes(){
   if(!fromPos||!toPos)return;
   clearMapRoutes();ld('计算路线中...');
   $('routeEmpty').style.display='none';$('routeContent').style.display='block';$('routeContent').innerHTML='';
   currentRoutes=[];
 
-  if(CFG.amapKey){
-    const or=`${fromPos.lng},${fromPos.lat}`,de=`${toPos.lng},${toPos.lat}`;
-    const[tr,wk,dr]=await Promise.allSettled([
-      fetchAmap('direction/transit/integrated',{origin:or,destination:de,city:fromPos.district||'全国',cityd:toPos.district||'全国'}),
-      fetchAmap('direction/walking',{origin:or,destination:de}),
-      fetchAmap('direction/driving',{origin:or,destination:de})
-    ]);
-    if(tr.status==='fulfilled'&&tr.value)currentRoutes.push(...tr.value);
-    else if(tr.status==='fulfilled'&&!tr.value){
-      const near=await findNearestTransit(toPos);
-      if(near){
-        ld('自动接驳最近站点...');
-        const tr2=await fetchAmap('direction/transit/integrated',{origin:or,destination:`${near.lng},${near.lat}`,city:fromPos.district||'全国',cityd:''});
-        if(tr2){tr2.forEach(r=>{r.steps.push({type:'walk',instruction:`步行到 ${esc(toPos.name)}`,distance:Math.round(near.dist||200),duration:Math.round((near.dist||200)/80*60)});r.summary.distance+=Math.round(near.dist||200);r.summary.duration+=Math.round((near.dist||200)/80*60);r.label+=' + 🚶接驳';});currentRoutes.push(...tr2);}
-      }
+  if(!CFG.amapKey){ul();$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)"><div style="font-size:48px;margin-bottom:12px">🔑</div><b>需要高德API Key</b><br><br>点击右侧 ◀ 打开设置<br>填入高德 Web服务 Key<br><br><a href="https://lbs.amap.com/" target="_blank" style="color:var(--blue)">免费获取 →</a></div>';return;}
+
+  const or=`${fromPos.lng},${fromPos.lat}`,de=`${toPos.lng},${toPos.lat}`;
+  const[tr,wk,dr]=await Promise.allSettled([
+    fetchAmap('direction/transit/integrated',{origin:or,destination:de,city:fromPos.district||'全国',cityd:toPos.district||'全国'}),
+    fetchAmap('direction/walking',{origin:or,destination:de}),
+    fetchAmap('direction/driving',{origin:or,destination:de})
+  ]);
+  if(tr.status==='fulfilled'&&tr.value)currentRoutes.push(...tr.value);
+  else if(tr.status==='fulfilled'&&!tr.value){
+    const near=await findNearestTransit(toPos);
+    if(near){
+      ld('自动接驳最近站点...');
+      const tr2=await fetchAmap('direction/transit/integrated',{origin:or,destination:`${near.lng},${near.lat}`,city:fromPos.district||'全国',cityd:''});
+      if(tr2){tr2.forEach(r=>{r.steps.push({type:'walk',instruction:`步行到 ${esc(toPos.name)}`,distance:Math.round(near.dist||200),duration:Math.round((near.dist||200)/80*60)});r.summary.distance+=Math.round(near.dist||200);r.summary.duration+=Math.round((near.dist||200)/80*60);r.label+=' + 🚶接驳';});currentRoutes.push(...tr2);}
     }
-    if(wk.status==='fulfilled'&&wk.value)currentRoutes.push(wk.value);
-    if(dr.status==='fulfilled'&&dr.value)currentRoutes.push(dr.value);
-  }else{
-    try{
-      const r=await fetch(`https://router.project-osrm.org/route/v1/foot/${fromPos.lng},${fromPos.lat};${toPos.lng},${toPos.lat}?overview=full&steps=true&alternatives=true&geometries=geojson`);
-      const d=await r.json();
-      if(d.code==='Ok')for(let i=0;i<Math.min(d.routes.length,2);i++){
-        const rt=d.routes[i],steps=[];
-        rt.legs.forEach(l=>l.steps.forEach(s=>steps.push({type:'walk',instruction:s.maneuver.type==='depart'?'从起点出发':s.maneuver.type==='arrive'?'到达目的地':'步行',distance:Math.round(s.distance),duration:Math.round(s.duration)})));
-        currentRoutes.push({type:'walking',summary:{distance:Math.round(rt.distance),duration:Math.round(rt.duration)},coords:rt.geometry.coordinates.map(c=>[c[1],c[0]]),steps,label:`🚶 步行 ${fmtDist(rt.distance)} · ${fmtDur(rt.duration)}`});
-      }
-    }catch(e){}
   }
+  if(wk.status==='fulfilled'&&wk.value)currentRoutes.push(wk.value);
+  if(dr.status==='fulfilled'&&dr.value)currentRoutes.push(dr.value);
+
   ul();
   if(!currentRoutes.length){$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">😔 未找到路线</div>';return;}
   activeIdx=0;renderTabs();showRoute(0);openCard();$('btnSaveRoute').style.display='flex';
@@ -560,7 +541,6 @@ function showRoute(idx){
   const flush=()=>{if(!buf.length)return;if(buf.length===1)h+=renderStep(++sn,buf[0]);else{const td=buf.reduce((s,st)=>s+(st.distance||0),0);h+=renderStep(++sn,{type:'walk',instruction:'沿路步行',distance:td});}buf=[];};
   r.steps.forEach(st=>{if(st.type==='walk')buf.push(st);else{flush();h+=renderStep(++sn,st);}});
   flush();
-  if(!CFG.amapKey&&currentRoutes.every(x=>x.type==='walking')){h+=`<div style="margin-top:20px;padding:16px;background:#FFF9E6;border-radius:12px;font-size:13px;color:#8B6914;line-height:1.7">💡 <b>提示：</b>当前仅显示步行路线。<br>右侧 ◀ 点击打开设置，填入高德 Key 即可查看公交地铁换乘。<br><a href="https://lbs.amap.com/" target="_blank" style="color:var(--blue)">免费获取 Key →</a></div>`;}
   sc.innerHTML=h;
 }
 
