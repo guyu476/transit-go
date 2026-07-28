@@ -89,9 +89,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .fav-item-del{width:28px;height:28px;border:none;background:var(--g200);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--g400);flex-shrink:0}
 
 /* ===== Bottom Route Card ===== */
-.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);transform:translateY(calc(100% - 56px));transition:transform .4s cubic-bezier(.25,.8,.25,1);max-height:70vh;display:flex;flex-direction:column}
-.route-card-bot.expanded{transform:translateY(0)}
-.route-card-bot.collapsed{transform:translateY(calc(100% - 56px))}
+.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);max-height:70vh;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.25,.8,.25,1)}
 .rc-handle{display:flex;justify-content:center;padding:12px 0 6px;cursor:pointer;flex-shrink:0}
 .rc-handle-bar{width:32px;height:4px;border-radius:2px;background:var(--g200)}
 .rc-header{display:flex;align-items:center;justify-content:space-between;padding:0 18px 10px;flex-shrink:0}
@@ -145,12 +143,13 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .marker-me{width:18px;height:18px;background:var(--blue);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(57,106,252,.4);position:relative}
 .marker-me::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;background:rgba(57,106,252,.08);border-radius:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite}
 @keyframes pulse-ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
-.marker-dest{width:28px;height:38px;position:relative}
-.marker-dest::before{content:'📌';font-size:28px;position:absolute;top:0;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
+.marker-dest{width:18px;height:18px;background:var(--red);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(232,85,61,.4);position:relative}
+.marker-dest::after{content:'';position:absolute;top:50%;left:50%;width:30px;height:30px;background:rgba(232,85,61,.08);border-radius:50%;transform:translate(-50%,-50%);animation:pulse-ring2 2s ease-out infinite}
+@keyframes pulse-ring2{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
 .custom-div-icon{border:none!important;background:none!important}
 
 @media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:480px;left:50%;transform:translateX(-50%)}}
-@media(min-width:1024px){.route-card-bot{left:50%;transform:translate(-50%,calc(100% - 56px));max-width:500px}.route-card-bot.expanded{transform:translate(-50%,0)}}
+@media(min-width:1024px){.route-card-bot{left:50%;max-width:500px;transform:translateX(-50%)!important}}
 </style>
 </head>
 <body>
@@ -255,7 +254,7 @@ let activeInput=null; // 'from' | 'to'
 
 // ---- Icons ----
 const fromIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-me"></div>',iconSize:[18,18],iconAnchor:[9,9]});
-const toIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-dest"></div>',iconSize:[28,38],iconAnchor:[14,38]});
+const toIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-dest"></div>',iconSize:[18,18],iconAnchor:[9,9]});
 
 // ---- Toast / Loading ----
 let tt;
@@ -429,9 +428,7 @@ async function calcRoutes(){
   }
   ul();
   if(!currentRoutes.length){$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">😔 未找到路线</div>';return;}
-  activeIdx=0;renderTabs();showRoute(0);
-  $('routeCard').style.transform='translateY(-'+Math.round(window.innerHeight*.45)+'px)';
-  $('btnSaveRoute').style.display='flex';
+  activeIdx=0;renderTabs();showRoute(0);showCard();$('btnSaveRoute').style.display='flex';
 }
 
 async function findNearestTransit(pos){
@@ -560,21 +557,40 @@ function renderStep(num,s){
 // ==================== Helpers ====================
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 
-// ==================== Route Card Free Drag ====================
-let sy=0,st=0,dragging=false;
-function getCardY(){const m=getComputedStyle($('routeCard')).transform;return m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;}
+// ==================== Route Card Drag & Toggle ====================
+let cardY=0,dragSy=0,dragStart=0,dragging=false;
+function setCardY(y){
+  cardY=Math.min(0,Math.max(y,-window.innerHeight*.7));
+  $('routeCard').style.transform=`translateY(${Math.round(cardY)}px)`;
+}
+function peekCard(){setCardY(-56);}
+function showCard(){setCardY(-window.innerHeight*.45);}
+
+$('routeCard').addEventListener('transitionend',()=>{$('routeCard').style.transition='';});
+
 $('routeHandle').addEventListener('pointerdown',e=>{
-  dragging=true;sy=e.clientY;st=getCardY();$('routeCard').style.transition='none';
+  $('routeCard').style.transition='none';
+  dragging=true;dragSy=e.clientY;dragStart=cardY;
 });
-document.addEventListener('pointermove',e=>{if(!dragging)return;$('routeCard').style.transform=`translateY(${Math.min(0,Math.max(st+e.clientY-sy,-window.innerHeight*.7))}px)`;});
+document.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  setCardY(dragStart+e.clientY-dragSy);
+});
 document.addEventListener('pointerup',()=>{
-  if(!dragging)return;dragging=false;$('routeCard').style.transition='transform .3s';
-  const y=getCardY();
+  if(!dragging)return;dragging=false;
+  $('routeCard').style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
+  // Snap: if mostly hidden, collapse; if expanded far, stay expanded; else near middle
   const h=window.innerHeight;
-  // If dragged near bottom (mostly hidden), collapse to peek state
-  if(y>-h*0.12)$('routeCard').style.transform='translateY(calc(100% - 56px))';
-  else if(y<-h*0.55)$('routeCard').style.transform='translateY(-'+Math.round(h*.65)+'px)';
-  else $('routeCard').style.transform=`translateY(${Math.round(y)}px)`;
+  if(cardY>-h*.1)peekCard();
+  else if(cardY<-h*.55)showCard();
+  // else stay where dragged
+});
+
+$('routeHandle').addEventListener('click',e=>{
+  if(dragging)return;
+  const h=window.innerHeight;
+  $('routeCard').style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
+  if(cardY>-h*.1)showCard();else peekCard();
 });
 
 // ==================== Settings ====================
@@ -631,6 +647,7 @@ function fmtDur(s){if(s<60)return Math.round(s)+'秒';if(s<3600)return Math.roun
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 
 // ==================== Init ====================
+peekCard();
 locateMe(true);
 window.addEventListener('resize',()=>map.invalidateSize());
 </script>
