@@ -430,7 +430,7 @@ async function calcRoutes(){
   ul();
   if(!currentRoutes.length){$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">😔 未找到路线</div>';return;}
   activeIdx=0;renderTabs();showRoute(0);
-  $('routeCard').classList.replace('collapsed','expanded');
+  $('routeCard').style.transform='translateY(-'+Math.round(window.innerHeight*.45)+'px)';
   $('btnSaveRoute').style.display='flex';
 }
 
@@ -460,7 +460,11 @@ function parseAmap(data,path){
         if(seg.walking){const w=seg.walking;steps.push({type:'walk',instruction:'步行',distance:+w.distance,duration:+w.duration});if(w.steps)w.steps.forEach(s=>{if(s.polyline)allCoords.push(...decodePoly(s.polyline));});}
         if(seg.bus&&seg.bus.buslines)seg.bus.buslines.forEach(bl=>{
           const tp=(bl.type||'').includes('地铁')?'metro':'bus';if(tp==='metro')mn++;else bn++;
-          steps.push({type:tp,line:bl.name,departure:(bl.departure_stop||{}).name||'',arrival:(bl.arrival_stop||{}).name||'',stops:+(bl.via_num||0),distance:+bl.distance,duration:+bl.duration});
+          const dLoc=(bl.departure_stop||{}).location||'';
+          const aLoc=(bl.arrival_stop||{}).location||'';
+          const dLatLng=dLoc?dLoc.split(',').map(Number).reverse():null;
+          const aLatLng=aLoc?aLoc.split(',').map(Number).reverse():null;
+          steps.push({type:tp,line:bl.name,departure:(bl.departure_stop||{}).name||'',arrival:(bl.arrival_stop||{}).name||'',stops:+(bl.via_num||0),distance:+bl.distance,duration:+bl.duration,depLoc:dLatLng,arrLoc:aLatLng});
           if(bl.polyline)allCoords.push(...decodePoly(bl.polyline));
         });
       });
@@ -491,6 +495,28 @@ function showRoute(idx){
   const r=currentRoutes[idx];if(!r)return;
   clearMapRoutes();
   if(r.coords&&r.coords.length>1){const cl=r.type==='walking'?'#E89520':'#396AFC';const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);routeLines.push(ln);map.fitBounds(L.latLngBounds(r.coords),{padding:[50,50],maxZoom:15,animate:true});}
+
+  // Add station markers for transit routes
+  if(r.type==='transit'){
+    r.steps.forEach(s=>{
+      if((s.type==='metro'||s.type==='bus')&&s.depLoc){
+        const m=L.marker(s.depLoc,{
+          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'var(--red)':'var(--green)'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
+          zIndexOffset:800
+        }).addTo(map);
+        m.bindTooltip(`<b>上车</b><br>${esc(s.departure)}<br>${esc(s.line)}`,{direction:'top',offset:[0,-8]});
+        routeLines.push(m);
+      }
+      if((s.type==='metro'||s.type==='bus')&&s.arrLoc){
+        const m=L.marker(s.arrLoc,{
+          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'var(--red)':'var(--green)'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
+          zIndexOffset:800
+        }).addTo(map);
+        m.bindTooltip(`<b>下车</b><br>${esc(s.arrival)}<br>${esc(s.line)}`,{direction:'top',offset:[0,-8]});
+        routeLines.push(m);
+      }
+    });
+  }
   const sc=$('stepContainer');if(!sc)return;
   const s=r.summary;
   let si=[{val:fmtDur(s.duration),label:'预计时间'},{val:fmtDist(s.distance),label:'总距离'}];
@@ -534,15 +560,21 @@ function renderStep(num,s){
 // ==================== Helpers ====================
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 
-// ==================== Route Card Drag ====================
+// ==================== Route Card Free Drag ====================
 let sy=0,st=0,dragging=false;
+function getCardY(){const m=getComputedStyle($('routeCard')).transform;return m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;}
 $('routeHandle').addEventListener('pointerdown',e=>{
-  dragging=true;sy=e.clientY;const m=getComputedStyle($('routeCard')).transform;st=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;$('routeCard').style.transition='none';
+  dragging=true;sy=e.clientY;st=getCardY();$('routeCard').style.transition='none';
 });
-document.addEventListener('pointermove',e=>{if(!dragging)return;$('routeCard').style.transform=`translateY(${Math.min(0,Math.max(st+e.clientY-sy,-window.innerHeight*.6))}px)`;});
+document.addEventListener('pointermove',e=>{if(!dragging)return;$('routeCard').style.transform=`translateY(${Math.min(0,Math.max(st+e.clientY-sy,-window.innerHeight*.7))}px)`;});
 document.addEventListener('pointerup',()=>{
-  if(!dragging)return;dragging=false;$('routeCard').style.transition='';const y=new DOMMatrixReadOnly(getComputedStyle($('routeCard').transform)).m42;
-  if(y<-window.innerHeight*.15)$('routeCard').classList.replace('collapsed','expanded');else $('routeCard').classList.replace('expanded','collapsed');
+  if(!dragging)return;dragging=false;$('routeCard').style.transition='transform .3s';
+  const y=getCardY();
+  const h=window.innerHeight;
+  // If dragged near bottom (mostly hidden), collapse to peek state
+  if(y>-h*0.12)$('routeCard').style.transform='translateY(calc(100% - 56px))';
+  else if(y<-h*0.55)$('routeCard').style.transform='translateY(-'+Math.round(h*.65)+'px)';
+  else $('routeCard').style.transform=`translateY(${Math.round(y)}px)`;
 });
 
 // ==================== Settings ====================
