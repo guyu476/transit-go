@@ -89,9 +89,8 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .fav-item-del{width:28px;height:28px;border:none;background:var(--g200);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--g400);flex-shrink:0}
 
 /* ===== Bottom Route Card ===== */
-.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);max-height:70vh;display:flex;flex-direction:column;transform:translateY(calc(100% - 56px));transition:transform .35s cubic-bezier(.25,.8,.25,1)}
-.route-card-bot.open{transform:translateY(0)}
-.rc-handle{display:flex;justify-content:center;padding:12px 0 6px;cursor:pointer;flex-shrink:0}
+.route-card-bot{position:fixed;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);display:flex;flex-direction:column;transition:bottom .35s cubic-bezier(.25,.8,.25,1)}
+.rc-handle{display:flex;justify-content:center;padding:12px 0 6px;cursor:ns-resize;flex-shrink:0;touch-action:none}
 .rc-handle-bar{width:32px;height:4px;border-radius:2px;background:var(--g200)}
 .rc-header{display:flex;align-items:center;justify-content:space-between;padding:0 18px 10px;flex-shrink:0}
 .rc-title{font-size:16px;font-weight:700}
@@ -150,7 +149,7 @@ html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,Blink
 .custom-div-icon{border:none!important;background:none!important}
 
 @media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:480px;left:50%;transform:translateX(-50%)}}
-@media(min-width:1024px){.route-card-bot{left:50%;max-width:500px;transform:translate(-50%,calc(100% - 56px))}.route-card-bot.open{transform:translate(-50%,0)}}
+@media(min-width:1024px){.route-card-bot{left:50%;right:auto;width:500px;margin-left:-250px}}
 </style>
 </head>
 <body>
@@ -561,12 +560,56 @@ function renderStep(num,s){
 // ==================== Helpers ====================
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 
-// ==================== Route Card ====================
-function openCard(){$('routeCard').classList.add('open');}
-function closeCard(){$('routeCard').classList.remove('open');}
-$('routeHandle').addEventListener('click',()=>{
-  $('routeCard').classList.toggle('open');
+// ==================== Route Card (bottom-based, no transform conflict) ====================
+const cardEl=$('routeCard');
+const cardPeek=56; // px visible when collapsed
+let cardHeight=0, cardBottom=-(window.innerHeight-cardPeek); // start collapsed
+cardEl.style.bottom=cardBottom+'px';
+cardEl.style.maxHeight='70vh';
+
+function updateCardSize(){
+  cardHeight=cardEl.offsetHeight||window.innerHeight*.45;
+  // Keep current ratio when resizing
+  const ratio=(cardBottom+cardHeight)/cardHeight;
+  setCardBottom(cardBottom);
+}
+function setCardBottom(y){
+  cardBottom=Math.max(-cardHeight+cardPeek,Math.min(y,0));
+  cardEl.style.bottom=Math.round(cardBottom)+'px';
+}
+function openCard(){setCardBottom(0);}
+function closeCard(){setCardBottom(-cardHeight+cardPeek);}
+
+$('routeHandle').addEventListener('pointerdown',e=>{
+  e.preventDefault();cardEl.setPointerCapture(e.pointerId);
+  cardEl.style.transition='none';
+  const startY=e.clientY,startB=cardBottom;
+  function mv(ev){
+    setCardBottom(startB+startY-ev.clientY);
+  }
+  function up(){
+    cardEl.style.transition='bottom .35s cubic-bezier(.25,.8,.25,1)';
+    // Snap: near top → open; near bottom → peek; middle → stay
+    if(cardBottom>-cardHeight*.2)openCard();
+    else if(cardBottom<-cardHeight*.8)closeCard();
+    cardEl.removeEventListener('pointermove',mv);
+    cardEl.removeEventListener('pointerup',up);
+    cardEl.removeEventListener('pointercancel',up);
+  }
+  cardEl.addEventListener('pointermove',mv);
+  cardEl.addEventListener('pointerup',up);
+  cardEl.addEventListener('pointercancel',up);
 });
+
+// Tap header to toggle
+$('routeHandle').addEventListener('click',e=>{
+  if(cardBottom>-cardHeight*.5)closeCard();else openCard();
+});
+
+// Update on resize
+window.addEventListener('resize',updateCardSize);
+// Delay initial size check
+setTimeout(updateCardSize,100);
 
 // ==================== Settings ====================
 $('settingsArrow').addEventListener('click',()=>{
