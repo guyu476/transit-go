@@ -5,459 +5,429 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#4A90D9">
+<meta name="theme-color" content="#396AFC">
 <title>Transit Go · 出行导航</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --blue:#396AFC;--blue-light:#E8EEFF;--blue-dark:#2851D1;
-  --red:#E8553D;--red-light:#FDEAE7;
-  --green:#2CA472;--green-light:#E6F6EF;
-  --amber:#E89520;--amber-light:#FDF3E3;
-  --purple:#7C5CE7;--purple-light:#F1EDFC;
-  --gray-50:#F8F9FB;--gray-100:#EEF1F5;--gray-200:#DDE1E8;--gray-400:#8B95A5;--gray-600:#4A5568;--gray-800:#1E293B;
-  --radius-sm:10px;--radius:16px;--radius-lg:20px;
-  --safe-bottom:env(safe-area-inset-bottom,16px);
+  --blue:#396AFC;--blue-l:#E8EEFF;--blue-d:#2851D1;
+  --red:#E8553D;--red-l:#FDEAE7;
+  --green:#2CA472;--green-l:#E6F6EF;
+  --amber:#E89520;--amber-l:#FDF3E3;
+  --purple:#7C5CE7;--purple-l:#F1EDFC;
+  --g50:#F8F9FB;--g100:#EEF1F5;--g200:#DDE1E8;--g400:#8B95A5;--g600:#4A5568;--g800:#1E293B;
+  --safe-b:env(safe-area-inset-bottom,16px);
 }
-html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;font-size:15px;color:var(--gray-800);background:#EDF0F5;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;font-size:15px;color:var(--g800);background:#EDF0F5;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
 
+/* ===== Map ===== */
 #map{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 .leaflet-control-zoom{display:none}
-.leaflet-control-attribution{font-size:9px!important;opacity:.5;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.75)!important;padding:2px 6px!important;border-radius:4px!important}
+.leaflet-control-attribution{font-size:9px!important;opacity:.4;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:rgba(255,255,255,.7)!important;padding:2px 6px!important;border-radius:4px!important}
 
-/* ===== Top Bar ===== */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:100;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top,10px))}
-.route-card{
-  background:rgba(255,255,255,.92);
-  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
-  border-radius:var(--radius-lg);
-  box-shadow:0 2px 20px rgba(0,0,0,.06),0 0 0 .5px rgba(0,0,0,.04);
-  overflow:hidden;
-}
-.route-row{display:flex;align-items:center;padding:0 10px;gap:4px}
-.route-row:first-child{border-bottom:1px solid var(--gray-100)}
-.route-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;position:relative}
-.route-dot.from{background:var(--blue);box-shadow:0 0 0 4px rgba(57,106,252,.12)}
-.route-dot.to{background:var(--red);box-shadow:0 0 0 4px rgba(232,85,61,.12)}
-.route-dot-line{position:absolute;left:5px;top:100%;width:2px;height:12px;background:var(--gray-200)}
-.route-input{flex:1;border:none;outline:none;padding:14px 4px;font-size:15px;background:transparent;color:var(--gray-800);min-width:0;font-weight:500}
-.route-input::placeholder{color:var(--gray-400);font-weight:400}
-.route-clear{width:30px;height:30px;border:none;background:var(--gray-100);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;color:var(--gray-400);font-size:14px;flex-shrink:0;transition:all .15s}
-.route-clear.show{display:flex}
-.route-clear:active{background:var(--gray-200)}
-.btn-swap{width:38px;height:38px;border:none;background:var(--blue-light);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;color:var(--blue);transition:all .25s}
-.btn-swap:active{transform:rotate(180deg);background:var(--blue);color:#fff}
-.btn-locate-inline{width:38px;height:38px;border:none;background:var(--blue-light);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;flex-shrink:0;color:var(--blue);transition:all .15s}
-.btn-locate-inline:active{background:var(--blue);color:#fff}
-.btn-locate-inline.locating{animation:pulse .8s ease-in-out infinite}
+/* ===== Top Search Bar (高德风格) ===== */
+.topbar{position:fixed;top:0;left:10px;right:10px;z-index:100;padding-top:max(10px,env(safe-area-inset-top,10px))}
+.search-wrap{display:flex;align-items:center;gap:6px}
+.search-box{flex:1;display:flex;align-items:center;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-radius:24px;padding:4px 6px 4px 16px;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.search-box input{flex:1;border:none;outline:none;font-size:15px;background:transparent;color:var(--g800);padding:10px 0;min-width:0}
+.search-box input::placeholder{color:var(--g400)}
+.search-clear{width:30px;height:30px;border:none;background:var(--g100);border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;color:var(--g400);font-size:14px;flex-shrink:0}
+.search-clear.show{display:flex}
+.btn-sm{width:40px;height:40px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;transition:all .15s}
+.btn-sm.white{background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.05);color:var(--g600)}
+.btn-sm.white:active{background:#fff;transform:scale(.93)}
+.btn-sm.white.locating{animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ===== Suggestions ===== */
-.suggestions{position:fixed;top:130px;left:12px;right:12px;z-index:110;background:rgba(255,255,255,.96);border-radius:var(--radius-lg);box-shadow:0 4px 32px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;display:none;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.suggestions{position:fixed;top:70px;left:10px;right:10px;z-index:110;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-radius:16px;box-shadow:0 4px 32px rgba(0,0,0,.1);max-height:280px;overflow-y:auto;display:none}
 .suggestions.show{display:block}
-.sug-item{padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .1s}
-.sug-item+.sug-item{border-top:1px solid var(--gray-100)}
-.sug-item:active,.sug-item:hover{background:var(--gray-50)}
-.sug-icon{font-size:20px;flex-shrink:0;width:32px;height:32px;border-radius:8px;background:var(--gray-50);display:flex;align-items:center;justify-content:center}
+.sug-item{padding:13px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .1s}
+.sug-item+.sug-item{border-top:1px solid var(--g100)}
+.sug-item:active{background:var(--g50)}
+.sug-icon{font-size:18px;flex-shrink:0;width:30px;height:30px;border-radius:8px;background:var(--g50);display:flex;align-items:center;justify-content:center}
 .sug-text{flex:1;min-width:0}
-.sug-name{font-size:15px;font-weight:600;color:var(--gray-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sug-addr{font-size:12px;color:var(--gray-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.sug-name{font-size:14px;font-weight:600;color:var(--g800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sug-addr{font-size:11px;color:var(--g400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.origin-hint{cursor:pointer;display:flex;align-items:center;padding:8px 16px 12px;gap:8px;color:var(--blue);font-size:13px;font-weight:600;border-bottom:1px solid var(--g100)}
+.origin-hint:active{opacity:.7}
 
-/* ===== Action Buttons ===== */
-.action-bar{position:fixed;top:180px;right:12px;z-index:100;display:flex;flex-direction:column;gap:8px}
-.btn-action{width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.85);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 1px 12px rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--gray-600);transition:all .15s}
-.btn-action:active{transform:scale(.92);background:#fff}
-.btn-action.danger{background:var(--red);color:#fff}
+/* ===== Side Buttons (high德 style) ===== */
+.side-btns{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px}
+.side-btn{width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--g600);transition:all .15s}
+.side-btn:active{transform:scale(.92);background:#fff}
+.side-btn.active{background:var(--blue);color:#fff}
+.side-btn.danger{background:var(--red);color:#fff;display:none}
+.side-btn.danger.show{display:flex}
 
-/* ===== Bottom Sheet ===== */
-.sheet{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);transform:translateY(calc(100% - 56px));height:45vh;display:flex;flex-direction:column;transition:transform .4s cubic-bezier(.25,.8,.25,1),height .4s}
-.sheet.expanded{transform:translateY(0);height:70vh}
-.sheet.collapsed{transform:translateY(calc(100% - 56px))}
-.sheet-handle{display:flex;justify-content:center;padding:14px 0 8px;cursor:pointer;flex-shrink:0}
-.sheet-handle-bar{width:32px;height:4px;border-radius:2px;background:var(--gray-200)}
-.sheet-header{padding:0 20px 12px;flex-shrink:0}
-.sheet-title{font-size:17px;font-weight:700;color:var(--gray-800);letter-spacing:-.2px}
-.sheet-meta{font-size:12px;color:var(--gray-400);margin-top:2px}
-.sheet-body{flex:1;overflow-y:auto;padding:0 16px 20px;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + var(--safe-bottom))}
-.sheet-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--gray-400);text-align:center;gap:8px}
-.sheet-empty-icon{font-size:52px;opacity:.35}
-.sheet-empty-text{font-size:14px;line-height:1.7;font-weight:500}
+/* ===== Settings Tab (collapsible from right) ===== */
+.settings-tab{position:fixed;right:0;top:35%;z-index:105;display:flex;align-items:center;transform:translateX(calc(100% - 32px));transition:transform .3s}
+.settings-tab.open{transform:translateX(0)}
+.settings-tab-arrow{width:32px;height:48px;background:var(--blue);color:#fff;border-radius:12px 0 0 12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;box-shadow:-2px 0 12px rgba(57,106,252,.2)}
+.settings-tab-body{background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);padding:16px;width:260px;max-height:60vh;overflow-y:auto;border-radius:12px 0 0 12px;box-shadow:-2px 4px 20px rgba(0,0,0,.06)}
+.settings-tab-body label{font-size:11px;font-weight:700;color:var(--g400);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.settings-tab-body input{width:100%;padding:10px 12px;border:1.5px solid var(--g200);border-radius:8px;font-size:13px;outline:none;margin-bottom:12px;background:var(--g50)}
+.settings-tab-body input:focus{border-color:var(--blue)}
+.settings-tab-body .tiles{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.settings-tab-body .tile-opt{padding:6px 10px;border-radius:14px;border:1.5px solid var(--g200);font-size:11px;cursor:pointer;font-weight:600;background:#fff;color:var(--g600)}
+.settings-tab-body .tile-opt.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.settings-tab-body .hint{font-size:11px;color:var(--g400);line-height:1.5;margin-bottom:12px}
+.settings-tab-body .hint a{color:var(--blue);font-weight:600}
+.btn-save{width:100%;padding:10px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:14px;font-weight:700;cursor:pointer}
 
-/* ===== Route Tabs ===== */
-.route-tabs{display:flex;gap:8px;overflow-x:auto;padding:8px 0 6px;margin-bottom:12px;-webkit-overflow-scrolling:touch}
+/* ===== Favorites Panel ===== */
+.fav-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.3);display:none;align-items:flex-end;justify-content:center}
+.fav-overlay.show{display:flex}
+.fav-panel{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:70vh;overflow-y:auto;padding:4px 16px 20px;padding-bottom:calc(20px + var(--safe-b))}
+.fav-header{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--g100);margin-bottom:8px}
+.fav-title{font-size:17px;font-weight:700}
+.fav-close{width:32px;height:32px;border:none;background:var(--g100);border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.fav-empty{padding:40px 0;text-align:center;color:var(--g400)}
+.fav-item{padding:14px 12px;border-radius:12px;background:var(--g50);margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .15s}
+.fav-item:active{background:var(--blue-l)}
+.fav-item-route{flex:1;min-width:0}
+.fav-item-from{font-size:13px;font-weight:600;color:var(--blue)}
+.fav-item-to{font-size:13px;font-weight:600;color:var(--red);margin-top:2px}
+.fav-item-date{font-size:10px;color:var(--g400);margin-top:4px}
+.fav-item-del{width:28px;height:28px;border:none;background:var(--g200);border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--g400);flex-shrink:0}
+
+/* ===== Bottom Route Card ===== */
+.route-card-bot{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -4px 40px rgba(0,0,0,.08);transform:translateY(calc(100% - 60px));transition:transform .4s cubic-bezier(.25,.8,.25,1);max-height:70vh;display:flex;flex-direction:column}
+.route-card-bot.expanded{transform:translateY(0)}
+.route-card-bot.collapsed{transform:translateY(calc(100% - 60px))}
+.route-card-handle{display:flex;justify-content:center;padding:14px 0 8px;cursor:pointer;flex-shrink:0}
+.route-card-handle-bar{width:32px;height:4px;border-radius:2px;background:var(--g200)}
+.route-card-header{display:flex;align-items:center;justify-content:space-between;padding:0 18px 10px;flex-shrink:0}
+.route-card-title{font-size:16px;font-weight:700}
+.route-card-btns{display:flex;gap:4px}
+.route-card-btns button{width:32px;height:32px;border:none;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;background:var(--g100)}
+.route-card-body{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;padding-bottom:calc(16px + var(--safe-b))}
+
+/* ===== Route Common ===== */
+.route-tabs{display:flex;gap:8px;overflow-x:auto;padding:6px 0;margin-bottom:12px}
 .route-tabs::-webkit-scrollbar{display:none}
-.route-tab{padding:9px 16px;border-radius:20px;border:none;background:var(--gray-100);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--gray-600);transition:all .2s}
-.route-tab.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(57,106,252,.3)}
-
-/* ===== Journey Flow ===== */
-.flow-bar{display:flex;align-items:center;gap:2px;padding:12px 10px;background:var(--gray-50);border-radius:var(--radius-sm);margin-bottom:16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.route-tab{padding:8px 14px;border-radius:18px;border:none;background:var(--g100);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--g600)}
+.route-tab.active{background:var(--blue);color:#fff;box-shadow:0 3px 10px rgba(57,106,252,.25)}
+.route-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:6px;padding:12px;background:linear-gradient(135deg,var(--blue-l),#DFE8FF);border-radius:12px;margin-bottom:14px}
+.route-summary-item{text-align:center;padding:4px}
+.route-summary-val{font-size:18px;font-weight:800;color:var(--blue-d)}
+.route-summary-label{font-size:10px;color:var(--blue);font-weight:600;opacity:.7}
+.flow-bar{display:flex;align-items:center;gap:2px;padding:10px 8px;background:var(--g50);border-radius:10px;margin-bottom:12px;overflow-x:auto}
 .flow-bar::-webkit-scrollbar{display:none}
-.flow-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.flow-line{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+.flow-line{width:14px;height:3px;border-radius:2px;flex-shrink:0}
 .flow-line.walk{background:var(--amber)}
 .flow-line.metro{background:var(--red)}
 .flow-line.bus{background:var(--green)}
-.flow-label{font-size:12px;color:var(--gray-600);white-space:nowrap;font-weight:600}
-
-/* ===== Steps ===== */
-.step{display:flex;gap:12px;padding:16px 0;align-items:flex-start;position:relative}
-.step+.step{border-top:1px solid var(--gray-100)}
-.step-num{width:28px;height:28px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--gray-400);flex-shrink:0;margin-top:1px}
-.step-icon-wrap{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
-.step-icon-wrap.metro{background:var(--red-light);color:var(--red)}
-.step-icon-wrap.bus{background:var(--green-light);color:var(--green)}
-.step-icon-wrap.walk{background:var(--amber-light);color:var(--amber)}
-.step-icon-wrap.transfer{background:var(--purple-light);color:var(--purple)}
+.flow-label{font-size:11px;color:var(--g600);white-space:nowrap;font-weight:600}
+.step{display:flex;gap:10px;padding:14px 0;align-items:flex-start}
+.step+.step{border-top:1px solid var(--g100)}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--g100);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--g400);flex-shrink:0;margin-top:2px}
+.step-icon-wrap{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px}
+.step-icon-wrap.metro{background:var(--red-l);color:var(--red)}
+.step-icon-wrap.bus{background:var(--green-l);color:var(--green)}
+.step-icon-wrap.walk{background:var(--amber-l);color:var(--amber)}
+.step-icon-wrap.transfer{background:var(--purple-l);color:var(--purple)}
 .step-content{flex:1;min-width:0}
-.step-title{font-size:14px;font-weight:700;color:var(--gray-800);line-height:1.4}
-.step-sub{font-size:12px;color:var(--gray-400);margin-top:2px;line-height:1.6}
-.step-stations{display:flex;align-items:center;gap:8px;margin-top:8px;padding:12px 14px;background:var(--gray-50);border-radius:var(--radius-sm);font-size:12px}
-.step-station{font-weight:700;color:var(--gray-800);font-size:13px}
-.step-arrow{color:var(--gray-400);font-size:18px;font-weight:700}
-.step-stops{color:var(--gray-400);font-size:12px;margin-left:4px}
-.step-info{font-size:11px;color:var(--gray-400);margin-top:6px}
+.step-title{font-size:14px;font-weight:700;color:var(--g800);line-height:1.3}
+.step-stations{display:flex;align-items:center;gap:6px;margin-top:6px;padding:10px 12px;background:var(--g50);border-radius:8px}
+.step-station{font-weight:700;color:var(--g800);font-size:13px}
+.step-arrow{color:var(--g400);font-size:16px}
+.step-stops{color:var(--g400);font-size:11px;margin-left:4px}
+.step-info{font-size:11px;color:var(--g400);margin-top:4px}
 
-/* ===== Route Summary ===== */
-.route-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;padding:14px;background:linear-gradient(135deg,var(--blue-light),#DFE8FF);border-radius:var(--radius-sm);margin-bottom:14px}
-.route-summary-item{display:flex;flex-direction:column;align-items:center;padding:6px 4px}
-.route-summary-val{font-size:19px;font-weight:800;color:var(--blue-dark);letter-spacing:-.3px}
-.route-summary-label{font-size:11px;color:var(--blue);margin-top:2px;font-weight:600;opacity:.7}
-
-/* ===== Loading / Toast ===== */
-.loading-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.25);display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-.loading-overlay.show{display:flex}
-.loading-spinner{background:#fff;border-radius:var(--radius-lg);padding:28px 36px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.1)}
-.loading-spinner-icon{font-size:40px;animation:spin .7s linear infinite;margin-bottom:10px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-spinner-text{font-size:14px;color:var(--gray-400);font-weight:600}
-
-.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:300;background:var(--gray-800);color:#fff;padding:11px 24px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+/* ===== Toast / Loading ===== */
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:300;background:var(--g800);color:#fff;padding:11px 24px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2)}
 .toast.show{opacity:1}
 .toast.error{background:var(--red)}
-
-/* ===== Modal ===== */
-.modal-overlay{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:80vh;overflow-y:auto;padding:4px 20px 20px;padding-bottom:calc(20px + var(--safe-bottom))}
-.modal-title{font-size:18px;font-weight:700;text-align:center;padding:14px 0;border-bottom:1px solid var(--gray-100);margin-bottom:16px;color:var(--gray-800)}
-.modal-section{margin-bottom:20px}
-.modal-label{font-size:12px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.modal-input{width:100%;padding:13px 16px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:15px;outline:none;transition:border-color .2s;background:var(--gray-50);font-weight:500}
-.modal-input:focus{border-color:var(--blue);background:#fff}
-.modal-hint{font-size:12px;color:var(--gray-400);margin-top:8px;line-height:1.6}
-.modal-hint a{color:var(--blue);font-weight:600}
-.modal-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:700;cursor:pointer;transition:all .15s}
-.modal-btn.primary{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(57,106,252,.3)}
-.modal-btn.primary:active{background:var(--blue-dark);transform:scale(.98)}
-.modal-btn.secondary{background:var(--gray-50);color:var(--gray-600);margin-top:8px}
+.loading-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.2);display:none;align-items:center;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.loading-overlay.show{display:flex}
+.loading-spinner{background:#fff;border-radius:16px;padding:24px 30px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.1)}
+.loading-spinner-icon{font-size:36px;animation:spin .7s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-spinner-text{font-size:13px;color:var(--g400);font-weight:600}
 
 /* ===== Markers ===== */
-.marker-me{width:20px;height:20px;background:var(--blue);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 12px rgba(57,106,252,.4);position:relative}
-.marker-me::after{content:'';position:absolute;top:50%;left:50%;width:44px;height:44px;background:rgba(57,106,252,.1);border-radius:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite}
-@keyframes pulse-ring{0%{transform:translate(-50%,-50%) scale(.4);opacity:1}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
-.marker-dest{width:32px;height:42px;position:relative}
-.marker-dest::before{content:'📌';font-size:30px;position:absolute;top:0;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 6px rgba(0,0,0,.15))}
+.marker-me{width:18px;height:18px;background:var(--blue);border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(57,106,252,.4);position:relative}
+.marker-me::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;background:rgba(57,106,252,.08);border-radius:50%;transform:translate(-50%,-50%);animation:pulse-ring 2s ease-out infinite}
+@keyframes pulse-ring{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+.marker-dest{width:28px;height:38px;position:relative}
+.marker-dest::before{content:'📌';font-size:28px;position:absolute;top:0;left:50%;transform:translateX(-50%);filter:drop-shadow(0 2px 4px rgba(0,0,0,.15))}
 .custom-div-icon{border:none!important;background:none!important}
 
-@media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:476px;left:50%;transform:translateX(-50%)}}
-@media(min-width:1024px){.sheet{left:50%;transform:translate(-50%,calc(100% - 56px));max-width:500px}.sheet.expanded{transform:translate(-50%,0)}}
+/* ===== Responsive ===== */
+@media(min-width:768px){.topbar{max-width:500px;left:50%;transform:translateX(-50%);padding-left:0;padding-right:0}.suggestions{max-width:480px;left:50%;transform:translateX(-50%)}.side-btns{right:calc(50% - 260px)}}
+@media(min-width:1024px){.route-card-bot{left:50%;transform:translate(-50%,calc(100% - 60px));max-width:500px}.route-card-bot.expanded{transform:translate(-50%,0)}}
 </style>
 </head>
 <body>
 <div id="map"></div>
 
-<!-- Top Bar: Origin + Destination -->
+<!-- Top Search Bar -->
 <div class="topbar">
-  <div class="route-card">
-    <div class="route-row">
-      <div class="route-dot from"></div>
-      <input type="text" class="route-input from" id="inputFrom" placeholder="🔍 搜索起点 / 自动定位" autocomplete="off" enterkeyhint="next">
-      <button class="btn-locate-inline" id="btnLocateInline" title="重新定位">⊕</button>
-      <button class="route-clear" id="clearFrom" title="清除">✕</button>
+  <div class="search-wrap">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="搜索目的地" autocomplete="off" enterkeyhint="search">
+      <button class="search-clear" id="searchClear">✕</button>
     </div>
-    <div class="route-row">
-      <div class="route-dot to"></div>
-      <input type="text" class="route-input to" id="inputTo" placeholder="🔍 要去哪里？" autocomplete="off" enterkeyhint="search">
-      <button class="btn-swap" id="btnSwap" title="交换起点终点">⇅</button>
-      <button class="route-clear" id="clearTo" title="清除">✕</button>
-    </div>
+    <button class="btn-sm white" id="btnLocate" title="定位">📍</button>
+    <button class="btn-sm white" id="btnFav" title="收藏路线">⭐</button>
   </div>
 </div>
 
 <!-- Suggestions -->
-<div class="suggestions" id="suggestions"></div>
-
-<!-- Action Buttons -->
-<div class="action-bar">
-  <button class="btn-action" id="btnSettings" title="设置">⚙️</button>
-  <button class="btn-action danger" id="btnClear" title="清除路线" style="display:none">✕</button>
+<div class="suggestions" id="suggestions">
+  <div class="origin-hint" id="originHint">📍 点击修改起点（当前：GPS定位）</div>
 </div>
 
-<!-- Bottom Sheet -->
-<div class="sheet collapsed" id="sheet">
-  <div class="sheet-handle" id="sheetHandle"><div class="sheet-handle-bar"></div></div>
-  <div class="sheet-header" id="sheetHeader">
-    <div class="sheet-title" id="sheetTitle">路线方案</div>
-    <div class="sheet-meta" id="sheetMeta"></div>
-  </div>
-  <div class="sheet-body" id="sheetBody">
-    <div class="sheet-empty" id="sheetEmpty">
-      <div class="sheet-empty-icon">🚇</div>
-      <div class="sheet-empty-text">设置起点和终点<br>自动规划公交地铁换乘路线</div>
+<!-- Side Buttons -->
+<div class="side-btns">
+  <button class="side-btn danger" id="btnClear">✕</button>
+</div>
+
+<!-- Settings Tab (collapsible from right) -->
+<div class="settings-tab" id="settingsTab">
+  <div class="settings-tab-arrow" id="settingsArrow">◀</div>
+  <div class="settings-tab-body">
+    <label>高德 API Key</label>
+    <input type="text" id="amapKeyInput" placeholder="输入 Key 启用公交路线...">
+    <div class="hint">去 <a href="https://lbs.amap.com/" target="_blank">lbs.amap.com</a> 免费注册，选「Web服务」。不填可用步行导航。</div>
+    <label>地图风格</label>
+    <div class="tiles" id="tileOptions">
+      <button class="tile-opt active" data-tile="amap">高德</button>
+      <button class="tile-opt" data-tile="osm">OSM</button>
+      <button class="tile-opt" data-tile="carto-light">浅色</button>
+      <button class="tile-opt" data-tile="carto-dark">暗色</button>
     </div>
-    <div id="routeContent" style="display:none"></div>
+    <button class="btn-save" id="saveSettings">保存设置</button>
   </div>
 </div>
 
-<!-- Loading / Toast / Modal -->
+<!-- Favorites Panel -->
+<div class="fav-overlay" id="favOverlay">
+  <div class="fav-panel">
+    <div class="fav-header">
+      <div class="fav-title">⭐ 收藏路线</div>
+      <button class="fav-close" id="favClose">✕</button>
+    </div>
+    <div id="favList"></div>
+  </div>
+</div>
+
+<!-- Bottom Route Card -->
+<div class="route-card-bot collapsed" id="routeCard">
+  <div class="route-card-handle" id="routeHandle"><div class="route-card-handle-bar"></div></div>
+  <div class="route-card-header">
+    <div class="route-card-title" id="routeTitle">路线方案</div>
+    <div class="route-card-btns">
+      <button id="btnSaveRoute" title="收藏此路线" style="display:none">⭐</button>
+    </div>
+  </div>
+  <div class="route-card-body" id="routeBody">
+    <div id="routeContent"></div>
+    <div id="routeEmpty" style="text-align:center;color:var(--g400);padding:50px 20px">
+      <div style="font-size:48px;opacity:.3;margin-bottom:8px">🗺️</div>
+      <div style="font-size:14px;font-weight:500">搜索目的地，自动规划路线</div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading / Toast -->
 <div class="loading-overlay" id="loading"><div class="loading-spinner"><div class="loading-spinner-icon">⏳</div><div class="loading-spinner-text" id="loadingText">计算中...</div></div></div>
 <div class="toast" id="toast"></div>
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <div class="modal-title">⚙️ 设置</div>
-    <div class="modal-section">
-      <div class="modal-label">高德地图 API Key（Web服务）</div>
-      <input type="text" class="modal-input" id="amapKeyInput" placeholder="输入你的高德 Key...">
-      <div class="modal-hint">
-        用于地点搜索 + 公交/地铁/步行路线规划。<br>
-        👉 打开 <a href="https://lbs.amap.com/" target="_blank">lbs.amap.com</a> 注册 → 创建应用 → 添加 Key。<br>
-        <b>服务平台</b> 选「Web服务」。<br>
-        不填可浏览地图，但搜索和公交路线需 Key。
-      </div>
-    </div>
-    <div class="modal-section">
-      <div class="modal-label">地图风格</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap" id="tileOptions">
-        <button class="route-tab active" data-tile="amap">高德地图</button>
-        <button class="route-tab" data-tile="osm">OSM标准</button>
-        <button class="route-tab" data-tile="carto-light">浅色地图</button>
-        <button class="route-tab" data-tile="carto-dark">暗色地图</button>
-      </div>
-    </div>
-    <button class="modal-btn primary" id="saveSettings">保存设置</button>
-    <button class="modal-btn secondary" id="closeSettings">取消</button>
-  </div>
-</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ================================================================
-   Transit Go · 出行导航 — 起点/终点双输入 + 详细换乘
+   Transit Go — 高德风格 · 收藏路线 · 自动接驳
    ================================================================ */
 const $=id=>document.getElementById(id);
 
 // ---- Config ----
-const CFG={amapKey:'',tileStyle:'amap',searchTimer:null,searchCache:new Map()};
-try{const s=JSON.parse(localStorage.getItem('transitgo_config')||'{}');if(s.amapKey)CFG.amapKey=s.amapKey;if(s.tileStyle)CFG.tileStyle=s.tileStyle;}catch(e){}
+const CFG={amapKey:'',tileStyle:'amap',searchTimer:null,cache:new Map()};
+try{const s=JSON.parse(localStorage.getItem('tg_config')||'{}');if(s.amapKey)CFG.amapKey=s.amapKey;if(s.tileStyle)CFG.tileStyle=s.tileStyle;}catch(e){}
 $('amapKeyInput').value=CFG.amapKey;
 
 // ---- Map ----
 const map=L.map('map',{zoomControl:false,attributionControl:true}).setView([39.9042,116.4074],13);
 const tileLayers={
-  amap:L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{maxZoom:18,subdomains:'1234',attribution:'&copy; <a href="https://www.amap.com/">高德地图</a>'}),
-  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}),
-  'carto-light':L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; <a href="https://carto.com/">CARTO</a>'}),
-  'carto-dark':L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; <a href="https://carto.com/">CARTO</a>'})
+  amap:L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{maxZoom:18,subdomains:'1234',attribution:'&copy; 高德地图'}),
+  osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OSM'}),
+  'carto-light':L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; CARTO'}),
+  'carto-dark':L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'&copy; CARTO'})
 };
 let curTile=tileLayers[CFG.tileStyle]||tileLayers.amap;curTile.addTo(map);
 
 // ---- State ----
-let fromPos=null,fromMarker=null,toPos=null,toMarker=null;
+let myPos=null,myMarker=null,toPos=null,toMarker=null;
 let routeLines=[],currentRoutes=[],activeIdx=0;
-let activeInput=null; // 'from' | 'to' — which input is being searched
+let searchingFor='to'; // 'to' | 'from'
 
 // ---- Icons ----
-const fromIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-me"></div>',iconSize:[22,22],iconAnchor:[11,11]});
-const toIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-dest"></div>',iconSize:[32,42],iconAnchor:[16,42]});
+const meIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-me"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+const toIcon=L.divIcon({className:'custom-div-icon',html:'<div class="marker-dest"></div>',iconSize:[28,38],iconAnchor:[14,38]});
 
 // ---- Toast / Loading ----
-let ttTimer;
-function toast(m,e){clearTimeout(ttTimer);$('toast').textContent=m;$('toast').className='toast show'+(e?' error':'');ttTimer=setTimeout(()=>$('toast').classList.remove('show'),2500);}
-function showLd(m){$('loadingText').textContent=m||'计算中...';$('loading').classList.add('show');}
-function hideLd(){$('loading').classList.remove('show');}
+let tt;
+function toast(m,e){clearTimeout(tt);$('toast').textContent=m;$('toast').className='toast show'+(e?' error':'');tt=setTimeout(()=>$('toast').classList.remove('show'),2500);}
+function ld(m){$('loadingText').textContent=m||'计算中...';$('loading').classList.add('show');}
+function ul(){setTimeout(()=>$('loading').classList.remove('show'),200);}
 
-// ==================== Geolocation ====================
-function locateMe(silent){
-  if(!navigator.geolocation){if(!silent)toast('设备不支持定位',true);return;}
-  if(!silent)toast('正在定位...');
-  $('btnLocateInline').classList.add('locating');
+// ==================== GPS ====================
+function locateMe(s){
+  if(!navigator.geolocation){if(!s)toast('设备不支持定位',1);return;}
+  if(!s)toast('正在定位...');
+  $('btnLocate').classList.add('locating');
   navigator.geolocation.getCurrentPosition(p=>{
-    fromPos={lat:p.coords.latitude,lng:p.coords.longitude,name:'我的位置'};
-    updateFromMarker();
-    if(activeInput==='from'){$('inputFrom').value='📍 我的位置';}
-    map.setView([fromPos.lat,fromPos.lng],15,{animate:true});
-    $('btnLocateInline').classList.remove('locating');
-    if(!silent)toast('定位成功 ✅');
+    myPos={lat:p.coords.latitude,lng:p.coords.longitude,name:'我的位置'};
+    if(myMarker)map.removeLayer(myMarker);
+    myMarker=L.marker([myPos.lat,myPos.lng],{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('<b>📍 我的位置</b>').openPopup();
+    map.setView([myPos.lat,myPos.lng],15,{animate:true});
+    $('btnLocate').classList.remove('locating');
+    if(!s)toast('定位成功 ✅');
     if(toPos)calcRoutes();
   },e=>{
-    $('btnLocateInline').classList.remove('locating');
-    if(!silent)toast(e.code===1?'请允许定位权限':'定位失败，请检查GPS',true);
+    $('btnLocate').classList.remove('locating');
+    if(!s)toast(e.code===1?'请允许定位权限':'定位失败',1);
   },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 }
 
-function updateFromMarker(){
-  if(!fromPos)return;
-  if(fromMarker)map.removeLayer(fromMarker);
-  fromMarker=L.marker([fromPos.lat,fromPos.lng],{icon:fromIcon,zIndexOffset:1000}).addTo(map).bindPopup('<b>🟢 起点</b><br>'+esc(fromPos.name)).openPopup();
-}
-function updateToMarker(){
-  if(!toPos)return;
-  if(toMarker)map.removeLayer(toMarker);
-  toMarker=L.marker([toPos.lat,toPos.lng],{icon:toIcon,zIndexOffset:999}).addTo(map).bindPopup('<b>🔴 终点</b><br>'+esc(toPos.name)).openPopup();
-}
-
 // ==================== Search ====================
-function buildSearchUrl(q){
+function searchUrl(q){
   if(CFG.amapKey)return `https://restapi.amap.com/v3/assistant/inputtips?key=${CFG.amapKey}&keywords=${encodeURIComponent(q)}&output=json`;
   return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh&countrycodes=cn`;
 }
 
-// Input: From
-$('inputFrom').addEventListener('focus',()=>{activeInput='from';$('inputFrom').select();});
-$('inputFrom').addEventListener('input',()=>handleInput('from'));
-$('inputFrom').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchCurrent();}});
-
-// Input: To
-$('inputTo').addEventListener('focus',()=>{activeInput='to';});
-$('inputTo').addEventListener('input',()=>handleInput('to'));
-$('inputTo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchCurrent();}});
-
-function getActiveInput(){return activeInput==='from'?$('inputFrom'):$('inputTo');}
-function getActivePos(){return activeInput==='from'?fromPos:toPos;}
-
-function handleInput(which){
-  const inp=which==='from'?$('inputFrom'):$('inputTo');
-  const clr=which==='from'?$('clearFrom'):$('clearTo');
-  const q=inp.value.trim();
-  clr.classList.toggle('show',q.length>0);
+$('searchInput').addEventListener('input',()=>{
+  const q=$('searchInput').value.trim();
+  $('searchClear').classList.toggle('show',q.length>0);
   clearTimeout(CFG.searchTimer);
   if(q.length<1){$('suggestions').classList.remove('show');return;}
-  if(CFG.searchCache.has(q)){renderSuggestions(CFG.searchCache.get(q));return;}
+  if(CFG.cache.has(q)){renderSuggestions(CFG.cache.get(q));return;}
   CFG.searchTimer=setTimeout(()=>{
-    fetch(buildSearchUrl(q)).then(r=>r.json()).then(d=>{CFG.searchCache.set(q,d);if(inp.value.trim()===q)renderSuggestions(d);}).catch(()=>{});
-  },350);
-}
+    fetch(searchUrl(q)).then(r=>r.json()).then(d=>{CFG.cache.set(q,d);if($('searchInput').value.trim()===q)renderSuggestions(d);}).catch(()=>{});
+  },300);
+});
+$('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchCurrent();}});
+$('searchClear').addEventListener('click',()=>{$('searchInput').value='';$('searchClear').classList.remove('show');$('suggestions').classList.remove('show');});
 
-function searchCurrent(){
-  const inp=getActiveInput();
-  const q=inp.value.trim();
-  if(!q)return;
+// Origin hint - set as starting point
+$('originHint').addEventListener('click',()=>{
+  searchingFor='from';
+  $('searchInput').placeholder='搜索起点...';
+  $('searchInput').value='';
+  $('searchInput').focus();
   $('suggestions').classList.remove('show');
-  inp.blur();
-  showLd('搜索中...');
-  fetch(buildSearchUrl(q)).then(r=>r.json()).then(d=>{
-    hideLd();
-    if(!d){toast('未找到',true);return;}
-    let lat,lng,name,district;
-    if(d.tips){
-      const t=d.tips.filter(t=>t.location&&t.location!=='0,0')[0];
-      if(!t){toast('未找到',true);return;}
-      [lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';
-    }else{
-      if(!d.length){toast('未找到',true);return;}
-      lat=+d[0].lat;lng=+d[0].lon;name=d[0].display_name.split(',')[0];district='';
-    }
-    setPosition(name,lat,lng,district);
-  }).catch(()=>{hideLd();toast('搜索失败',true);});
-}
+  toast('输入起点名称搜索');
+});
+$('searchInput').addEventListener('focus',()=>{
+  if(!searchingFor||searchingFor==='to'){$('searchInput').placeholder='搜索目的地';searchingFor='to';}
+  else{$('searchInput').placeholder='搜索起点...';}
+});
 
 function renderSuggestions(data){
   const s=$('suggestions');
   const empty=!data||(Array.isArray(data)&&!data.length)||(data.tips&&!data.tips.filter(t=>t.location&&t.location!=='0,0').length);
-  if(empty){s.innerHTML='<div class="sug-item" style="color:var(--text2);justify-content:center">未找到结果</div>';s.classList.add('show');return;}
+  if(empty){s.innerHTML='<div class="sug-item" style="color:var(--g400);justify-content:center">未找到结果</div>';s.classList.add('show');return;}
+  let items='';
   if(data.tips){
-    s.innerHTML=data.tips.filter(t=>t.location&&t.location!=='0,0').map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">${t.tipType===5?'🚉':t.tipType===4?'🚌':'📍'}</span><div class="sug-text"><div class="sug-name">${esc(t.name)}</div><div class="sug-addr">${esc(t.district||'')}${esc(t.address||'')}</div></div></div>`).join('');
+    items=data.tips.filter(t=>t.location&&t.location!=='0,0').map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">${t.tipType===5?'🚉':t.tipType===4?'🚌':'📍'}</span><div class="sug-text"><div class="sug-name">${esc(t.name)}</div><div class="sug-addr">${esc(t.district||'')}${esc(t.address||'')}</div></div></div>`).join('');
   }else{
-    s.innerHTML=data.map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">📍</span><div class="sug-text"><div class="sug-name">${esc(t.display_name.split(',')[0])}</div><div class="sug-addr">${esc(t.display_name.split(',').slice(1).join(',').trim())}</div></div></div>`).join('');
+    items=data.map((t,i)=>`<div class="sug-item" data-idx="${i}"><span class="sug-icon">📍</span><div class="sug-text"><div class="sug-name">${esc(t.display_name.split(',')[0])}</div><div class="sug-addr">${esc(t.display_name.split(',').slice(1).join(',').trim())}</div></div></div>`).join('');
   }
+  s.innerHTML=`<div class="origin-hint" id="originHint2">📍 设为${searchingFor==='from'?'终点':'起点'}（当前：${searchingFor==='from'?toPos?toPos.name:'GPS定位':myPos?myPos.name:'GPS定位'}）</div>${items}`;
+  $('originHint2').addEventListener('click',()=>{
+    searchingFor=searchingFor==='from'?'to':'from';
+    $('searchInput').placeholder=searchingFor==='from'?'搜索起点...':'搜索目的地';
+    $('searchInput').value='';$('searchInput').focus();
+    toast(searchingFor==='from'?'现在搜索起点':'现在搜索目的地');
+  });
   s.classList.add('show');
 }
 
 $('suggestions').addEventListener('click',e=>{
   const it=e.target.closest('.sug-item');if(!it)return;
   const idx=+it.dataset.idx;
-  const inp=getActiveInput();
-  const data=CFG.searchCache.get(inp.value.trim());
+  const data=CFG.cache.get($('searchInput').value.trim());
   if(!data)return;
   $('suggestions').classList.remove('show');
   let lat,lng,name,district;
   if(data.tips){const t=data.tips.filter(t=>t.location&&t.location!=='0,0')[idx];[lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';}
   else{lat=+data[idx].lat;lng=+data[idx].lon;name=data[idx].display_name.split(',')[0];district='';}
-  setPosition(name,lat,lng,district);
+  if(searchingFor==='from'){
+    if(myMarker)map.removeLayer(myMarker);
+    myPos={lat,lng,name,district};myMarker=L.marker([lat,lng],{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('<b>🟢 起点</b><br>'+esc(name)).openPopup();
+    $('searchInput').placeholder='搜索目的地';searchingFor='to';$('searchInput').value='';
+    toast('起点已设为：'+name);
+  }else{
+    setDest(name,lat,lng,district);
+  }
 });
 
-function setPosition(name,lat,lng,district){
-  const inp=getActiveInput();
-  inp.value=name;
-  (activeInput==='from'?$('clearFrom'):$('clearTo')).classList.add('show');
-  if(activeInput==='from'){
-    fromPos={lat,lng,name,district:district||''};
-    updateFromMarker();
-  }else{
-    toPos={lat,lng,name,district:district||''};
-    updateToMarker();
-  }
-  fitBoth();
-  $('btnClear').style.display='flex';
-  if(fromPos&&toPos)calcRoutes();
+function searchCurrent(){
+  const q=$('searchInput').value.trim();if(!q)return;
+  $('suggestions').classList.remove('show');$('searchInput').blur();
+  ld('搜索中...');
+  fetch(searchUrl(q)).then(r=>r.json()).then(d=>{
+    ul();
+    if(!d){toast('未找到',1);return;}
+    let lat,lng,name,district;
+    if(d.tips){const t=d.tips.filter(t=>t.location&&t.location!=='0,0')[0];if(!t){toast('未找到',1);return;}[lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';}
+    else{if(!d.length){toast('未找到',1);return;}lat=+d[0].lat;lng=+d[0].lon;name=d[0].display_name.split(',')[0];district='';}
+    if(searchingFor==='from'){
+      if(myMarker)map.removeLayer(myMarker);
+      myPos={lat,lng,name,district};myMarker=L.marker([lat,lng],{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('<b>🟢 起点</b><br>'+esc(name)).openPopup();
+      $('searchInput').placeholder='搜索目的地';searchingFor='to';$('searchInput').value='';
+      toast('起点已设为：'+name);fitBoth();
+    }else{setDest(name,lat,lng,district);}
+  }).catch(()=>{ul();toast('搜索失败',1);});
 }
 
-// Set from GPS
-$('btnLocateInline').addEventListener('click',()=>{
-  activeInput='from';
-  locateMe(false);
-});
-
-// Swap origin/destination
-$('btnSwap').addEventListener('click',()=>{
-  const tmpP=fromPos,tmpN=$('inputFrom').value;
-  fromPos=toPos;toPos=tmpP;
-  $('inputFrom').value=toPos?toPos.name:'';
-  $('inputTo').value=fromPos?fromPos.name:'';
-  $('clearFrom').classList.toggle('show',!!fromPos);
-  $('clearTo').classList.toggle('show',!!toPos);
-  if(fromMarker)map.removeLayer(fromMarker);fromMarker=null;
-  if(toMarker)map.removeLayer(toMarker);toMarker=null;
-  updateFromMarker();updateToMarker();
-  fitBoth();
-  if(fromPos&&toPos)calcRoutes();
-  $('btnSwap').classList.toggle('flipped');
-});
-
-// Clear buttons
-$('clearFrom').addEventListener('click',()=>{$('inputFrom').value='';$('clearFrom').classList.remove('show');fromPos=null;if(fromMarker){map.removeLayer(fromMarker);fromMarker=null;}});
-$('clearTo').addEventListener('click',()=>{$('inputTo').value='';$('clearTo').classList.remove('show');toPos=null;if(toMarker){map.removeLayer(toMarker);toMarker=null;}});
+function setDest(name,lat,lng,district){
+  toPos={lat,lng,name,district:district||''};$('searchInput').value='';$('searchClear').classList.remove('show');
+  if(toMarker)map.removeLayer(toMarker);
+  toMarker=L.marker([lat,lng],{icon:toIcon,zIndexOffset:999}).addTo(map).bindPopup('<b>🔴 终点</b><br>'+esc(name)).openPopup();
+  fitBoth();$('btnClear').classList.add('show');
+  if(!myPos){toast('正在定位...');locateMe(true);return;}
+  calcRoutes();
+}
 
 function fitBoth(){
-  if(!fromPos&&!toPos)return;
-  if(fromPos&&toPos){map.fitBounds(L.latLngBounds([fromPos.lat,fromPos.lng],[toPos.lat,toPos.lng]),{padding:[60,60],maxZoom:15,animate:true});}
-  else{const p=fromPos||toPos;map.setView([p.lat,p.lng],15,{animate:true});}
+  if(myPos&&toPos)map.fitBounds(L.latLngBounds([myPos.lat,myPos.lng],[toPos.lat,toPos.lng]),{padding:[50,50],maxZoom:15,animate:true});
+  else{const p=myPos||toPos;if(p)map.setView([p.lat,p.lng],15,{animate:true});}
 }
 
 // ==================== Routes ====================
 async function calcRoutes(){
-  if(!fromPos||!toPos)return;
-  clearMapRoutes();
-  showLd('计算路线中...');
-  $('sheetEmpty').style.display='none';
-  $('routeContent').style.display='block';
-  $('routeContent').innerHTML='';
-  currentRoutes=[];
+  if(!myPos||!toPos)return;
+  clearMapRoutes();ld('计算路线中...');$('routeEmpty').style.display='none';
+  $('routeContent').style.display='block';$('routeContent').innerHTML='';currentRoutes=[];
 
   if(CFG.amapKey){
-    const or=`${fromPos.lng},${fromPos.lat}`,de=`${toPos.lng},${toPos.lat}`;
+    const or=`${myPos.lng},${myPos.lat}`,de=`${toPos.lng},${toPos.lat}`;
     const[tr,wk,dr]=await Promise.allSettled([
-      fetchAmap('direction/transit/integrated',{origin:or,destination:de,city:fromPos.district||'全国',cityd:toPos.district||'全国'}),
+      fetchAmap('direction/transit/integrated',{origin:or,destination:de,city:myPos.district||'全国',cityd:toPos.district||'全国'}),
       fetchAmap('direction/walking',{origin:or,destination:de}),
       fetchAmap('direction/driving',{origin:or,destination:de})
     ]);
-    if(tr.status==='fulfilled'&&tr.value)currentRoutes.push(...tr.value);
+    if(tr.status==='fulfilled'&&tr.value){currentRoutes.push(...tr.value);}
+    else if(tr.status==='fulfilled'&&!tr.value){
+      // Auto-connect: try nearby transit station
+      const near=await findNearestTransit(toPos);
+      if(near){
+        ld('自动接驳最近站点...');
+        const tr2=await fetchAmap('direction/transit/integrated',{origin:or,destination:`${near.lng},${near.lat}`,city:myPos.district||'全国',cityd:''});
+        if(tr2){currentRoutes.push(...tr2);}
+        // Add final walking from station to destination
+        const wk2=await fetchAmap('direction/walking',{origin:`${near.lng},${near.lat}`,destination:de});
+        if(wk2&&tr2)tr2.forEach(r=>{r.steps.push({type:'walk',instruction:`步行到 ${esc(toPos.name)}`,distance:Math.round(near.dist||200),duration:Math.round((near.dist||200)/80*60)});r.summary.distance+=Math.round(near.dist||200);r.summary.duration+=Math.round((near.dist||200)/80*60);r.label+=' + 🚶接驳';});
+      }
+    }
     if(wk.status==='fulfilled'&&wk.value)currentRoutes.push(wk.value);
     if(dr.status==='fulfilled'&&dr.value)currentRoutes.push(dr.value);
   }else{
     try{
-      const r=await fetch(`https://router.project-osrm.org/route/v1/foot/${fromPos.lng},${fromPos.lat};${toPos.lng},${toPos.lat}?overview=full&steps=true&alternatives=true&geometries=geojson`);
+      const r=await fetch(`https://router.project-osrm.org/route/v1/foot/${myPos.lng},${myPos.lat};${toPos.lng},${toPos.lat}?overview=full&steps=true&alternatives=true&geometries=geojson`);
       const d=await r.json();
       if(d.code==='Ok')for(let i=0;i<Math.min(d.routes.length,2);i++){
         const rt=d.routes[i],steps=[];
@@ -467,10 +437,22 @@ async function calcRoutes(){
     }catch(e){}
   }
 
-  hideLd();
-  if(!currentRoutes.length){$('routeContent').innerHTML='<div class="sheet-empty" style="height:auto;padding:30px"><div class="sheet-empty-icon">😔</div><div class="sheet-empty-text">未找到路线，请检查起点终点或网络</div></div>';return;}
+  ul();
+  if(!currentRoutes.length){$('routeContent').innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">😔 未找到路线</div>';$('btnClear').classList.add('show');return;}
   activeIdx=0;renderTabs();showRoute(0);
-  $('sheet').classList.replace('collapsed','expanded');
+  $('routeCard').classList.replace('collapsed','expanded');
+  $('btnSaveRoute').style.display='flex';
+}
+
+async function findNearestTransit(pos){
+  try{
+    const r=await fetch(`https://restapi.amap.com/v3/place/around?key=${CFG.amapKey}&location=${pos.lng},${pos.lat}&keywords=地铁站|公交站&radius=3000&output=json&sortrule=distance`);
+    const d=await r.json();
+    if(d.status!=='1'||!d.pois||!d.pois.length)return null;
+    const p=d.pois[0];
+    const[lng,lat]=p.location.split(',').map(Number);
+    return{lat,lng,dist:+p.distance,station:p.name};
+  }catch(e){return null;}
 }
 
 async function fetchAmap(path,params){
@@ -511,48 +493,36 @@ function decodePoly(e){if(!e)return[];const c=[];let i=0,la=0,ln=0;while(i<e.len
 
 // ==================== Display ====================
 function renderTabs(){
-  $('sheetTitle').textContent=`${esc(fromPos?.name||'起点')} → ${esc(toPos?.name||'终点')}`;
-  $('sheetMeta').textContent=`${currentRoutes.length} 条方案`;
-  $('routeContent').innerHTML=`
-    <div class="route-tabs">${currentRoutes.map((r,i)=>`<button class="route-tab${i===activeIdx?' active':''}" data-idx="${i}">${esc(r.label)}</button>`).join('')}</div>
-    <div id="stepContainer"></div>`;
+  $('routeTitle').textContent=`${esc(myPos?.name||'起点')} → ${esc(toPos?.name||'终点')}`;
+  $('routeContent').innerHTML=`<div class="route-tabs">${currentRoutes.map((r,i)=>`<button class="route-tab${i===activeIdx?' active':''}" data-idx="${i}">${esc(r.label)}</button>`).join('')}</div><div id="stepContainer"></div>`;
   $('routeContent').querySelectorAll('.route-tab').forEach(t=>t.addEventListener('click',()=>{activeIdx=+t.dataset.idx;renderTabs();showRoute(activeIdx);}));
 }
 
 function showRoute(idx){
   const r=currentRoutes[idx];if(!r)return;
   clearMapRoutes();
-  if(r.coords&&r.coords.length>1){const cl=r.type==='walking'?'#F39C12':'#4A90D9';const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);routeLines.push(ln);map.fitBounds(L.latLngBounds(r.coords),{padding:[60,60],maxZoom:15,animate:true});}
+  if(r.coords&&r.coords.length>1){const cl=r.type==='walking'?'#E89520':'#396AFC';const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);routeLines.push(ln);map.fitBounds(L.latLngBounds(r.coords),{padding:[50,50],maxZoom:15,animate:true});}
   const sc=$('stepContainer');if(!sc)return;
-  $('sheetMeta').textContent=r.label;
   const s=r.summary;
   let sumItems=[{val:fmtDur(s.duration),label:'预计时间'},{val:fmtDist(s.distance),label:'总距离'}];
   if(r.type==='transit'){if(s.metroCount)sumItems.push({val:s.metroCount+' 条',label:'地铁'});if(s.busCount)sumItems.push({val:s.busCount+' 条',label:'公交'});}
 
-  // Build flow bar for transit routes
   let flowHtml='';
   if(r.type==='transit'){
-    const segs=[];
-    r.steps.forEach(st=>{
-      const lbl=st.type==='metro'?`🚇 ${esc(st.line||'地铁')}`:st.type==='bus'?`🚌 ${esc(st.line||'公交')}`:'🚶';
-      segs.push({type:st.type,label:lbl});
-    });
-    flowHtml='<div class="flow-bar"><div class="flow-seg"><span style="font-size:13px">起</span></div>';
-    segs.forEach(sg=>{
-      const cl=sg.type==='metro'?'metro':sg.type==='bus'?'bus':'walk';
-      flowHtml+=`<div class="flow-line ${cl}" style="width:16px"></div><span class="flow-label" style="font-weight:500;color:var(--text)">${sg.label}</span><div class="flow-line ${cl}" style="width:16px"></div>`;
-    });
-    flowHtml+='<div class="flow-seg"><span style="font-size:13px">终</span></div></div>';
+    const segs=[];r.steps.forEach(st=>{const lbl=st.type==='metro'?`🚇 ${esc(st.line||'地铁')}`:st.type==='bus'?`🚌 ${esc(st.line||'公交')}`:'🚶';segs.push({type:st.type,label:lbl});});
+    flowHtml='<div class="flow-bar"><span style="font-size:12px;font-weight:700;margin-right:4px">起</span>';
+    segs.forEach(sg=>{const cl=sg.type==='metro'?'metro':sg.type==='bus'?'bus':'walk';flowHtml+=`<div class="flow-line ${cl}"></div><span class="flow-label">${sg.label}</span><div class="flow-line ${cl}"></div>`;});
+    flowHtml+='<span style="font-size:12px;font-weight:700;margin-left:4px">终</span></div>';
   }
 
-  let h=`<div class="route-summary">${sumItems.map(m=>`<div class="route-summary-item"><div class="route-summary-val">${m.val}</div><div class="route-summary-label">${m.label}</div></div>`).join('')}</div>${flowHtml}<div class="step-list">`;
+  let h=`<div class="route-summary">${sumItems.map(m=>`<div class="route-summary-item"><div class="route-summary-val">${m.val}</div><div class="route-summary-label">${m.label}</div></div>`).join('')}</div>${flowHtml}`;
 
   let stepNum=0,buf=[];
   const flush=()=>{if(!buf.length)return;if(buf.length===1)h+=renderStep(++stepNum,buf[0]);else{const td=buf.reduce((s,st)=>s+(st.distance||0),0);h+=renderStep(++stepNum,{type:'walk',instruction:'沿路步行',distance:td});}buf=[];};
   r.steps.forEach(st=>{if(st.type==='walk')buf.push(st);else{flush();h+=renderStep(++stepNum,st);}});
   flush();
-  h+='</div>';
-  if(!CFG.amapKey&&currentRoutes.every(x=>x.type==='walking')){h+=`<div style="margin-top:20px;padding:16px;background:#FFF9E6;border-radius:10px;font-size:13px;color:#8B6914;line-height:1.7">💡 <b>提示：</b>当前仅显示步行/驾车路线。<br>点击右上角 ⚙️ 设置，填入高德 Key 即可查看公交地铁换乘方案。<br><a href="https://lbs.amap.com/" target="_blank" style="color:var(--primary)">免费获取 Key →</a></div>`;}
+
+  if(!CFG.amapKey&&currentRoutes.every(x=>x.type==='walking')){h+=`<div style="margin-top:20px;padding:16px;background:#FFF9E6;border-radius:12px;font-size:13px;color:#8B6914;line-height:1.7">💡 <b>提示：</b>当前仅显示步行路线。<br>右侧 ◀ 点击打开设置，填入高德 Key 即可查看公交地铁换乘。<br><a href="https://lbs.amap.com/" target="_blank" style="color:var(--blue)">免费获取 Key →</a></div>`;}
   sc.innerHTML=h;
 }
 
@@ -560,31 +530,18 @@ function renderStep(num,s){
   const cfg={metro:['metro','🚇'],bus:['bus','🚌'],walk:['walk','🚶'],transfer:['transfer','🔄']};
   const[cls,icon]=cfg[s.type]||['walk','🚶'];
   let title='',sub='';
-
   if(s.type==='metro'||s.type==='bus'){
     const tp=s.type==='metro'?'地铁':'公交';
-    if(s.line)title=`<b>${esc(s.line)}</b> <span style="font-size:12px;color:var(--text2);font-weight:400">${tp}</span>`;
+    if(s.line)title=`<b>${esc(s.line)}</b> <span style="font-size:12px;color:var(--g400);font-weight:400">${tp}</span>`;
     else title=`乘坐${tp}`;
     if(s.departure&&s.arrival){
-      sub=`<div class="step-stations">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px">
-          <span style="font-size:11px;color:var(--primary);font-weight:600">上车</span>
-          <span class="step-station" style="font-size:14px">${esc(s.departure)}</span>
-        </div>
-        <span class="step-arrow" style="font-size:20px">→</span>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px">
-          <span style="font-size:11px;color:var(--danger);font-weight:600">下车</span>
-          <span class="step-station" style="font-size:14px">${esc(s.arrival)}</span>
-        </div>
-        <span class="step-stops" style="margin-left:8px">${s.stops>0?'坐 '+s.stops+' 站':''}</span>
-      </div>`;
+      sub=`<div class="step-stations"><div style="text-align:center"><span style="font-size:10px;color:var(--blue);font-weight:700">上车</span><br><span class="step-station">${esc(s.departure)}</span></div><span class="step-arrow">→</span><div style="text-align:center"><span style="font-size:10px;color:var(--red);font-weight:700">下车</span><br><span class="step-station">${esc(s.arrival)}</span></div><span class="step-stops">${s.stops>0?'坐 '+s.stops+' 站':''}</span></div>`;
     }
     sub+=`<div class="step-info">${fmtDist(s.distance)} · ${fmtDur(s.duration)}</div>`;
   }else if(s.type==='walk'){
     title=s.instruction||'步行';
     sub=`<div class="step-info">${s.distance?fmtDist(s.distance)+' · ':''}${s.duration?fmtDur(s.duration):''}</div>`;
   }
-
   return`<div class="step"><div class="step-num">${num}</div><div class="step-icon-wrap ${cls}">${icon}</div><div class="step-content"><div class="step-title">${title}</div>${sub}</div></div>`;
 }
 
@@ -592,42 +549,105 @@ function renderStep(num,s){
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 function clearAll(){
   clearMapRoutes();currentRoutes=[];activeIdx=0;
-  $('routeContent').innerHTML='';$('routeContent').style.display='none';$('sheetEmpty').style.display='flex';
-  $('btnClear').style.display='none';
-  $('sheet').classList.replace('expanded','collapsed');
-  $('sheetTitle').textContent='路线方案';$('sheetMeta').textContent='';
+  $('routeContent').innerHTML='';$('routeContent').style.display='none';$('routeEmpty').style.display='block';
+  $('btnClear').classList.remove('show');$('btnSaveRoute').style.display='none';
+  $('routeCard').classList.replace('expanded','collapsed');
+  $('routeTitle').textContent='路线方案';
+  if(toMarker){map.removeLayer(toMarker);toMarker=null;}toPos=null;
 }
 
-// ==================== Sheet Gesture ====================
+// ==================== Route Card Drag ====================
 let sy=0,st=0,dragging=false;
-$('sheetHandle').addEventListener('pointerdown',e=>{
-  dragging=true;sy=e.clientY;const m=getComputedStyle($('sheet')).transform;st=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;$('sheet').style.transition='none';
+$('routeHandle').addEventListener('pointerdown',e=>{
+  dragging=true;sy=e.clientY;const m=getComputedStyle($('routeCard')).transform;st=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;$('routeCard').style.transition='none';
 });
-document.addEventListener('pointermove',e=>{if(!dragging)return;$('sheet').style.transform=`translateY(${Math.min(0,Math.max(st+e.clientY-sy,-window.innerHeight*.6))}px)`;});
+document.addEventListener('pointermove',e=>{if(!dragging)return;$('routeCard').style.transform=`translateY(${Math.min(0,Math.max(st+e.clientY-sy,-window.innerHeight*.6))}px)`;});
 document.addEventListener('pointerup',()=>{
-  if(!dragging)return;dragging=false;$('sheet').style.transition='';const y=new DOMMatrixReadOnly(getComputedStyle($('sheet').transform)).m42;
-  if(y<-window.innerHeight*.15)$('sheet').classList.replace('collapsed','expanded');else $('sheet').classList.replace('expanded','collapsed');
+  if(!dragging)return;dragging=false;$('routeCard').style.transition='';const y=new DOMMatrixReadOnly(getComputedStyle($('routeCard').transform)).m42;
+  if(y<-window.innerHeight*.15)$('routeCard').classList.replace('collapsed','expanded');else $('routeCard').classList.replace('expanded','collapsed');
 });
 
-// ==================== Settings ====================
-$('btnSettings').addEventListener('click',()=>$('settingsModal').classList.add('show'));
-$('closeSettings').addEventListener('click',()=>$('settingsModal').classList.remove('show'));
-$('settingsModal').addEventListener('click',e=>{if(e.target===$('settingsModal'))$('settingsModal').classList.remove('show');});
+// ==================== Settings Tab ====================
+$('settingsArrow').addEventListener('click',()=>{
+  const tab=$('settingsTab');
+  tab.classList.toggle('open');
+  $('settingsArrow').textContent=tab.classList.contains('open')?'▶':'◀';
+});
+
 $('saveSettings').addEventListener('click',()=>{
   CFG.amapKey=$('amapKeyInput').value.trim();
-  CFG.tileStyle=document.querySelector('#tileOptions .route-tab.active')?.dataset?.tile||'amap';
-  localStorage.setItem('transitgo_config',JSON.stringify({amapKey:CFG.amapKey,tileStyle:CFG.tileStyle}));
+  CFG.tileStyle=document.querySelector('#tileOptions .tile-opt.active')?.dataset?.tile||'amap';
+  localStorage.setItem('tg_config',JSON.stringify({amapKey:CFG.amapKey,tileStyle:CFG.tileStyle}));
   map.removeLayer(curTile);curTile=tileLayers[CFG.tileStyle]||tileLayers.amap;curTile.addTo(map);
-  CFG.searchCache.clear();
-  $('settingsModal').classList.remove('show');toast('设置已保存 ✅');
-  if(fromPos&&toPos)calcRoutes();
+  CFG.cache.clear();
+  toast('设置已保存 ✅');
+  if(myPos&&toPos)calcRoutes();
 });
-document.querySelectorAll('#tileOptions .route-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#tileOptions .route-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');}));
-const atb=document.querySelector(`#tileOptions [data-tile="${CFG.tileStyle}"]`);if(atb){document.querySelectorAll('#tileOptions .route-tab').forEach(b=>b.classList.remove('active'));atb.classList.add('active');}
 
-// ==================== Escape / Map Click ====================
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('suggestions').classList.remove('show');$('settingsModal').classList.remove('show');$('inputFrom').blur();$('inputTo').blur();}});
-map.on('click',()=>{$('suggestions').classList.remove('show');$('inputFrom').blur();$('inputTo').blur();});
+document.querySelectorAll('#tileOptions .tile-opt').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tileOptions .tile-opt').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+}));
+const atb=document.querySelector(`#tileOptions [data-tile="${CFG.tileStyle}"]`);if(atb){document.querySelectorAll('#tileOptions .tile-opt').forEach(b=>b.classList.remove('active'));atb.classList.add('active');}
+
+// ==================== Favorites ====================
+function getFavs(){try{return JSON.parse(localStorage.getItem('tg_favs')||'[]');}catch(e){return[];}}
+function saveFavs(favs){localStorage.setItem('tg_favs',JSON.stringify(favs));}
+
+function renderFavs(){
+  const favs=getFavs();const el=$('favList');
+  if(!favs.length){el.innerHTML='<div class="fav-empty">📭<br>还没有收藏路线<br>规划路线后点击 ⭐ 收藏</div>';return;}
+  el.innerHTML=favs.reverse().map((f,i)=>{
+    const d=new Date(f.date);
+    return`<div class="fav-item" data-idx="${favs.length-1-i}">
+      <div class="fav-item-route">
+        <div class="fav-item-from">🟢 ${esc(f.fromName)}</div>
+        <div class="fav-item-to">🔴 ${esc(f.toName)}</div>
+        <div class="fav-item-date">${d.toLocaleDateString()} ${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <button class="fav-item-del" data-del="${favs.length-1-i}">✕</button>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.fav-item').forEach(item=>{
+    item.addEventListener('click',e=>{
+      if(e.target.closest('.fav-item-del'))return;
+      const idx=+item.dataset.idx;
+      const f=favs.reverse()[idx];
+      if(myMarker)map.removeLayer(myMarker);
+      myPos={lat:f.fromLat,lng:f.fromLng,name:f.fromName};
+      myMarker=L.marker([myPos.lat,myPos.lng],{icon:meIcon,zIndexOffset:1000}).addTo(map).bindPopup('<b>🟢 起点</b><br>'+esc(f.fromName));
+      setDest(f.toName,f.toLat,f.toLng,'');
+      $('favOverlay').classList.remove('show');
+    });
+  });
+  el.querySelectorAll('.fav-item-del').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const favs=getFavs();favs.splice(+btn.dataset.del,1);saveFavs(favs);renderFavs();
+    });
+  });
+}
+
+$('btnFav').addEventListener('click',()=>{
+  renderFavs();$('favOverlay').classList.add('show');
+});
+$('favClose').addEventListener('click',()=>$('favOverlay').classList.remove('show'));
+$('favOverlay').addEventListener('click',e=>{if(e.target===$('favOverlay'))$('favOverlay').classList.remove('show');});
+
+$('btnSaveRoute').addEventListener('click',()=>{
+  if(!myPos||!toPos)return;
+  const favs=getFavs();
+  favs.push({fromName:myPos.name,fromLat:myPos.lat,fromLng:myPos.lng,toName:toPos.name,toLat:toPos.lat,toLng:toPos.lng,date:Date.now()});
+  saveFavs(favs);toast('已收藏 ⭐');
+});
+
+// ==================== Buttons ====================
+$('btnLocate').addEventListener('click',()=>locateMe());
+$('btnClear').addEventListener('click',clearAll);
+
+// ==================== Keyboard / Map ====================
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('suggestions').classList.remove('show');$('searchInput').blur();}});
+map.on('click',()=>{$('suggestions').classList.remove('show');$('searchInput').blur();});
 
 // ==================== Utils ====================
 function fmtDist(m){return m<1000?Math.round(m)+'米':(m/1000).toFixed(1)+'公里';}
@@ -637,7 +657,7 @@ function esc(s){const d=document.createElement('div');d.textContent=s||'';return
 // ==================== Init ====================
 locateMe(true);
 window.addEventListener('resize',()=>map.invalidateSize());
-console.log('🚇 Transit Go 已就绪');
+console.log('🚇 Transit Go · 已就绪');
 </script>
 </body>
 </html>
