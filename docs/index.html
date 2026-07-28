@@ -295,6 +295,18 @@ function searchUrl(q){
   return `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh&countrycodes=cn`;
 }
 
+function checkAmapError(d){
+  if(d&&d.status==='0'){
+    const msg=d.info||d.infocode||'';
+    if(msg.includes('INVALID')){toast('高德Key无效，请检查设置',1);CFG.amapKey='';$('amapKeyInput').value='';localStorage.setItem('tg_config',JSON.stringify({amapKey:'',tileStyle:CFG.tileStyle}));}
+    else toast('高德API错误：'+msg,1);
+    return true;
+  }
+  return false;
+}
+
+function validCoord(lat,lng){return lat&&lng&&Math.abs(lat)>0.01&&Math.abs(lng)>0.01&&Math.abs(lat)<=90&&Math.abs(lng)<=180;}
+
 $('inputFrom').addEventListener('focus',()=>{activeInput='from';$('inputFrom').select();});
 $('inputTo').addEventListener('focus',()=>{activeInput='to';});
 $('inputFrom').addEventListener('input',()=>handleInput('from'));
@@ -322,16 +334,27 @@ function searchCurrent(){
   const inp=getInp(),q=inp.value.trim();if(!q)return;
   $('suggestions').classList.remove('show');inp.blur();ld('搜索中...');
   fetch(searchUrl(q)).then(r=>r.json()).then(d=>{
-    ul();if(!d){toast('未找到',1);return;}
+    ul();if(checkAmapError(d))return;
+    if(!d){toast('未找到',1);return;}
     let lat,lng,name,district;
-    if(d.tips){const t=d.tips.filter(t=>t.location&&t.location!=='0,0')[0];if(!t){toast('未找到',1);return;}[lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';}
-    else{if(!d.length){toast('未找到',1);return;}lat=+d[0].lat;lng=+d[0].lon;name=d[0].display_name.split(',')[0];district='';}
+    if(d.tips){
+      const t=d.tips.filter(t=>t.location&&t.location!=='0,0')[0];
+      if(!t){toast('未找到',1);return;}
+      [lng,lat]=t.location.split(',').map(Number);
+      name=t.name;district=t.district||'';
+    }else{
+      if(!d.length){toast('未找到',1);return;}
+      lat=+d[0].lat;lng=+d[0].lon;
+      name=d[0].display_name.split(',')[0];district='';
+    }
+    if(!validCoord(lat,lng)){toast('坐标异常，请重试或检查高德Key类型（需Web服务）',1);return;}
     setPos(name,lat,lng,district);
-  }).catch(()=>{ul();toast('搜索失败',1);});
+  }).catch(()=>{ul();toast('搜索失败，检查网络',1);});
 }
 
 function renderSuggestions(data){
   const s=$('suggestions');
+  if(checkAmapError(data)){s.classList.remove('show');return;}
   const empty=!data||(Array.isArray(data)&&!data.length)||(data.tips&&!data.tips.filter(t=>t.location&&t.location!=='0,0').length);
   if(empty){s.innerHTML='<div class="sug-item" style="color:var(--g400);justify-content:center">未找到结果</div>';s.classList.add('show');return;}
   let items='';
@@ -347,10 +370,12 @@ $('suggestions').addEventListener('click',e=>{
   const it=e.target.closest('.sug-item');if(!it)return;
   const idx=+it.dataset.idx;
   const data=CFG.cache.get(getInp().value.trim());
-  if(!data)return;$('suggestions').classList.remove('show');
+  if(!data||checkAmapError(data)){$('suggestions').classList.remove('show');return;}
   let lat,lng,name,district;
   if(data.tips){const t=data.tips.filter(t=>t.location&&t.location!=='0,0')[idx];[lng,lat]=t.location.split(',').map(Number);name=t.name;district=t.district||'';}
   else{lat=+data[idx].lat;lng=+data[idx].lon;name=data[idx].display_name.split(',')[0];district='';}
+  $('suggestions').classList.remove('show');
+  if(!validCoord(lat,lng)){toast('坐标异常，请检查高德Key类型',1);return;}
   setPos(name,lat,lng,district);
 });
 
