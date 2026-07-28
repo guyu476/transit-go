@@ -269,6 +269,7 @@ function locateMe(s){
   if(!s)toast('正在定位...');
   $('btnLocate').classList.add('locating');
   navigator.geolocation.getCurrentPosition(p=>{
+    if(!p.coords.latitude||!p.coords.longitude){if(!s)toast('定位数据异常',1);return;}
     fromPos={lat:p.coords.latitude,lng:p.coords.longitude,name:''};
     updateFromMarker();
     map.setView([fromPos.lat,fromPos.lng],15,{animate:true});
@@ -355,6 +356,7 @@ $('suggestions').addEventListener('click',e=>{
 });
 
 function setPos(name,lat,lng,district){
+  if(!lat||!lng){toast('坐标无效，请重试',1);return;}
   const inp=getInp(),clr=getClr();
   inp.value=name;clr.classList.add('show');
   if(activeInput==='from'){
@@ -387,8 +389,9 @@ $('clearFrom').addEventListener('click',()=>{$('inputFrom').value='';$('clearFro
 $('clearTo').addEventListener('click',()=>{$('inputTo').value='';$('clearTo').classList.remove('show');toPos=null;if(toMarker){map.removeLayer(toMarker);toMarker=null;}});
 
 function fitBoth(){
-  if(fromPos&&toPos)map.fitBounds(L.latLngBounds([fromPos.lat,fromPos.lng],[toPos.lat,toPos.lng]),{padding:[50,50],maxZoom:15,animate:true});
-  else{const p=fromPos||toPos;if(p)map.setView([p.lat,p.lng],15,{animate:true});}
+  if(fromPos&&toPos&&fromPos.lat&&toPos.lat){
+    map.fitBounds(L.latLngBounds([fromPos.lat,fromPos.lng],[toPos.lat,toPos.lng]),{padding:[50,50],maxZoom:15,animate:true});
+  }else{const p=fromPos||toPos;if(p&&p.lat)map.setView([p.lat,p.lng],15,{animate:true});}
 }
 
 // ==================== Routes ====================
@@ -518,7 +521,7 @@ function showRoute(idx){
   const sc=$('stepContainer');if(!sc)return;
   const s=r.summary;
   let si=[{val:fmtDur(s.duration),label:'预计时间'},{val:fmtDist(s.distance),label:'总距离'}];
-  if(r.type==='transit'){if(s.metroCount)si.push({val:s.metroCount+' 条',label:'地铁'});if(s.busCount)si.push({val:s.busCount+' 条',label:'公��'});}
+  if(r.type==='transit'){if(s.metroCount)si.push({val:s.metroCount+' 条',label:'地铁'});if(s.busCount)si.push({val:s.busCount+' 条',label:'公交'});}
 
   let fh='';
   if(r.type==='transit'){
@@ -559,36 +562,11 @@ function renderStep(num,s){
 function clearMapRoutes(){routeLines.forEach(l=>map.removeLayer(l));routeLines=[];}
 
 // ==================== Route Card ====================
-let dragSy=0,dragStart=0,dragging=false;
-const cardEl=$('routeCard');
-
-function openCard(){cardEl.style.transform='';cardEl.classList.add('open');}
-function closeCard(){cardEl.classList.remove('open');cardEl.style.transform='';}
-function toggleCard(){cardEl.classList.contains('open')?closeCard():openCard();}
-
-cardEl.addEventListener('transitionend',()=>{cardEl.style.transition='';});
-
-$('routeHandle').addEventListener('pointerdown',e=>{
-  cardEl.style.transition='none';
-  dragging=true;dragSy=e.clientY;
-  const m=getComputedStyle(cardEl).transform;
-  dragStart=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;
+function openCard(){$('routeCard').classList.add('open');}
+function closeCard(){$('routeCard').classList.remove('open');}
+$('routeHandle').addEventListener('click',()=>{
+  $('routeCard').classList.toggle('open');
 });
-document.addEventListener('pointermove',e=>{
-  if(!dragging)return;
-  const y=Math.min(0,Math.max(dragStart+e.clientY-dragSy,-window.innerHeight*.7));
-  cardEl.style.transform=cardEl.classList.contains('open')?`translateY(${Math.round(y)}px)`:`translateY(calc(100% - 56px + ${Math.round(y-dragStart)}px))`;
-});
-document.addEventListener('pointerup',()=>{
-  if(!dragging)return;dragging=false;
-  cardEl.style.transition='transform .35s cubic-bezier(.25,.8,.25,1)';
-  const m=getComputedStyle(cardEl).transform;
-  const y=m&&m!=='none'?new DOMMatrixReadOnly(m).m42:0;
-  cardEl.style.transform='';
-  if(y<-window.innerHeight*.1)openCard();else closeCard();
-});
-
-$('routeHandle').addEventListener('click',e=>{if(!dragging)toggleCard();});
 
 // ==================== Settings ====================
 $('settingsArrow').addEventListener('click',()=>{
