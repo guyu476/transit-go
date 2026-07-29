@@ -468,8 +468,10 @@ function parseAmap(data,path){
           const tp=(bl.type||'').includes('地铁')?'metro':'bus';if(tp==='metro')mn++;else bn++;
           const dLoc=(bl.departure_stop||{}).location||'';
           const aLoc=(bl.arrival_stop||{}).location||'';
-          const dLatLng=dLoc?dLoc.split(',').map(Number).reverse():null;
-          const aLatLng=aLoc?aLoc.split(',').map(Number).reverse():null;
+          const dLatLng=(dLoc&&dLoc.includes(','))?dLoc.split(',').map(Number).reverse():null;
+          const aLatLng=(aLoc&&aLoc.includes(','))?aLoc.split(',').map(Number).reverse():null;
+          if(dLatLng&&(!validCoord(dLatLng[0],dLatLng[1])))dLatLng=null;
+          if(aLatLng&&(!validCoord(aLatLng[0],aLatLng[1])))aLatLng=null;
           steps.push({type:tp,line:bl.name,departure:(bl.departure_stop||{}).name||'',arrival:(bl.arrival_stop||{}).name||'',stops:+(bl.via_num||0),distance:+bl.distance,duration:+bl.duration,depLoc:dLatLng,arrLoc:aLatLng});
           if(bl.polyline)allCoords.push(...decodePoly(bl.polyline));
         });
@@ -500,28 +502,49 @@ function renderTabs(){
 function showRoute(idx){
   const r=currentRoutes[idx];if(!r)return;
   clearMapRoutes();
-  if(r.coords&&r.coords.length>1){const cl=r.type==='walking'?'#E89520':'#396AFC';const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);routeLines.push(ln);map.fitBounds(L.latLngBounds(r.coords),{padding:[50,50],maxZoom:15,animate:true});}
 
-  // Add station markers for transit routes
+  // Draw route line + station markers
+  const allBounds=[];
+  if(fromPos&&fromPos.lat){allBounds.push([fromPos.lat,fromPos.lng]);}
+  if(toPos&&toPos.lat){allBounds.push([toPos.lat,toPos.lng]);}
+
+  if(r.coords&&r.coords.length>1){
+    const cl=r.type==='walking'?'#E89520':'#396AFC';
+    const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);
+    routeLines.push(ln);
+    r.coords.forEach(c=>allBounds.push(c));
+  }
+
+  // Station markers
   if(r.type==='transit'){
     r.steps.forEach(s=>{
-      if((s.type==='metro'||s.type==='bus')&&s.depLoc){
+      if(s.depLoc&&validCoord(s.depLoc[0],s.depLoc[1])){
+        allBounds.push(s.depLoc);
         const m=L.marker(s.depLoc,{
-          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'var(--red)':'var(--green)'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
+          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'#E8553D':'#2CA472'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
           zIndexOffset:800
         }).addTo(map);
         m.bindTooltip(`<b>上车</b><br>${esc(s.departure)}<br>${esc(s.line)}`,{direction:'top',offset:[0,-8]});
         routeLines.push(m);
       }
-      if((s.type==='metro'||s.type==='bus')&&s.arrLoc){
+      if(s.arrLoc&&validCoord(s.arrLoc[0],s.arrLoc[1])){
+        allBounds.push(s.arrLoc);
         const m=L.marker(s.arrLoc,{
-          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'var(--red)':'var(--green)'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
+          icon:L.divIcon({className:'custom-div-icon',html:`<div style="width:10px;height:10px;border-radius:50%;background:#fff;border:2.5px solid ${s.type==='metro'?'#E8553D':'#2CA472'};box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,iconSize:[10,10],iconAnchor:[5,5]}),
           zIndexOffset:800
         }).addTo(map);
         m.bindTooltip(`<b>下车</b><br>${esc(s.arrival)}<br>${esc(s.line)}`,{direction:'top',offset:[0,-8]});
         routeLines.push(m);
       }
     });
+  }
+
+  // Fit map to all points
+  if(allBounds.length>1){
+    const b=L.latLngBounds(allBounds);
+    map.fitBounds(b,{padding:[60,60],maxZoom:15,animate:true});
+  }else if(allBounds.length===1){
+    map.setView(allBounds[0],15,{animate:true});
   }
   const sc=$('stepContainer');if(!sc)return;
   const s=r.summary;
