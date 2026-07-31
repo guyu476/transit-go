@@ -461,9 +461,9 @@ async function fetchAmap(path,params){
 function parseAmap(data,path){
   if(path.includes('transit')){
     return(data.route?.transits||[]).map(t=>{
-      const steps=[];let mn=0,bn=0;let allCoords=[];
+      const steps=[];let mn=0,bn=0;let allCoords=[];let segCoords=[];let currentSegType=null,currentSeg=[];
       t.segments.forEach(seg=>{
-        if(seg.walking){const w=seg.walking;steps.push({type:'walk',instruction:'步行',distance:+w.distance,duration:+w.duration});if(w.steps)w.steps.forEach(s=>{if(s.polyline)allCoords.push(...decodePoly(s.polyline));});}
+        if(seg.walking){const w=seg.walking;steps.push({type:'walk',instruction:'步行',distance:+w.distance,duration:+w.duration});if(w.steps)w.steps.forEach(s=>{if(s.polyline){const c=decodePoly(s.polyline);allCoords.push(...c);if(currentSegType!=='walk'){if(currentSeg.length)segCoords.push({type:currentSegType,coords:currentSeg});currentSeg=[];currentSegType='walk';}currentSeg.push(...c);}});}
         if(seg.bus&&seg.bus.buslines)seg.bus.buslines.forEach(bl=>{
           const tp=(bl.type||'').includes('地铁')?'metro':'bus';if(tp==='metro')mn++;else bn++;
           const dLoc=(bl.departure_stop||{}).location||'';
@@ -473,11 +473,12 @@ function parseAmap(data,path){
           if(dLatLng&&(!validCoord(dLatLng[0],dLatLng[1])))dLatLng=null;
           if(aLatLng&&(!validCoord(aLatLng[0],aLatLng[1])))aLatLng=null;
           steps.push({type:tp,line:bl.name,departure:(bl.departure_stop||{}).name||'',arrival:(bl.arrival_stop||{}).name||'',stops:+(bl.via_num||0),distance:+bl.distance,duration:+bl.duration,depLoc:dLatLng,arrLoc:aLatLng});
-          if(bl.polyline)allCoords.push(...decodePoly(bl.polyline));
+          if(bl.polyline){const c=decodePoly(bl.polyline);allCoords.push(...c);if(currentSegType!==tp){if(currentSeg.length)segCoords.push({type:currentSegType,coords:currentSeg});currentSeg=[];currentSegType=tp;}currentSeg.push(...c);}
         });
       });
+      if(currentSeg.length)segCoords.push({type:currentSegType,coords:currentSeg});
       const parts=[];if(mn)parts.push(`🚇${mn}次`);if(bn)parts.push(`🚌${bn}次`);
-      return{type:'transit',summary:{distance:+t.distance,duration:+t.duration,metroCount:mn,busCount:bn},coords:allCoords,steps,label:`${parts.join('·')} · ${fmtDur(+t.duration)}`};
+      return{type:'transit',summary:{distance:+t.distance,duration:+t.duration,metroCount:mn,busCount:bn},coords:allCoords,segCoords,steps,label:`${parts.join('·')} · ${fmtDur(+t.duration)}`};
     });
   }
   if(path.includes('walking')||path.includes('driving')){
@@ -509,10 +510,27 @@ function showRoute(idx){
   if(toPos&&toPos.lat){allBounds.push([toPos.lat,toPos.lng]);}
 
   if(r.coords&&r.coords.length>1){
-    const cl=r.type==='walking'?'#E89520':'#396AFC';
-    const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'10 6':null}).addTo(map);
-    routeLines.push(ln);
-    r.coords.forEach(c=>allBounds.push(c));
+    const segStyle={
+      walk:{color:'#E89520',weight:4,opacity:.7,dashArray:'8 6'},
+      metro:{color:'#E8553D',weight:5,opacity:.85},
+      bus:{color:'#2CA472',weight:5,opacity:.85}
+    };
+    if(r.segCoords&&r.segCoords.length){
+      // Draw each segment with its own color
+      r.segCoords.forEach(sg=>{
+        if(sg.coords.length>1){
+          const st=segStyle[sg.type]||segStyle.walk;
+          const ln=L.polyline(sg.coords,{color:st.color,weight:st.weight,opacity:st.opacity,dashArray:st.dashArray||null}).addTo(map);
+          routeLines.push(ln);
+        }
+        sg.coords.forEach(c=>allBounds.push(c));
+      });
+    }else{
+      const cl=r.type==='walking'?'#E89520':'#396AFC';
+      const ln=L.polyline(r.coords,{color:cl,weight:5,opacity:.7,dashArray:r.type==='walking'?'8 6':null}).addTo(map);
+      routeLines.push(ln);
+      r.coords.forEach(c=>allBounds.push(c));
+    }
   }
 
   // Station markers
