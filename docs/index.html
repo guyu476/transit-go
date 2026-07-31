@@ -491,7 +491,14 @@ function parseAmap(data,path){
   return null;
 }
 
-function decodePoly(e){if(!e)return[];const c=[];let i=0,la=0,ln=0;while(i<e.length){let b,sh=0,r=0;do{b=e.charCodeAt(i++)-63;r|=(b&0x1f)<<sh;sh+=5}while(b>=0x20);la+=(r&1?~(r>>1):(r>>1));sh=0;r=0;do{b=e.charCodeAt(i++)-63;r|=(b&0x1f)<<sh;sh+=5}while(b>=0x20);ln+=(r&1?~(r>>1):(r>>1));c.push([la/1e6,ln/1e6]);}return c;}
+// 高德API v3 返回的是明文坐标串 "lng,lat;lng,lat;..."，无需解码
+function decodePoly(s){
+  if(!s)return[];
+  return s.split(';').map(pair=>{
+    const[lng,lat]=pair.split(',').map(Number);
+    return[lat,lng];
+  }).filter(c=>validCoord(c[0],c[1]));
+}
 
 // ==================== Display ====================
 function renderTabs(){
